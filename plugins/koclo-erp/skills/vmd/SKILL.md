@@ -15,7 +15,7 @@ description: VMD 행거 대시보드 탭 작업 라우팅. "VMD", "행거탭", "
 |---|---|---|---|---|---|
 | 0 | 오버뷰 | `vmd-overview-agent` | `VmdStoreTable.js`, `VmdDatePicker.js` | `GET /vmd/overview`, `/config`(stock), `PATCH /vmd/store-const` | `inventory_snapshot`, `products`, `pm_suppliers`, `stores` |
 | 1 | 기온 & 시즌 | `vmd-season-agent` | `VmdWeatherSeason.js` | `GET /vmd/config`(기온·시즌상수), `POST/GET /vmd/temp-log(s)` | `vmd_temp_log` |
-| 2 | 월별 수량 | `vmd-monthly-volume-agent` | `VmdStoreQtyTable.js` | `GET /vmd/monthly`, `/config`(monthly) | `inventory_snapshot` |
+| 2 | 월별 수량 | `vmd-monthly-volume-agent` | `VmdStoreQtyTable.js`, `vmdCompute.js`(tempInterpQty) | `GET /vmd/config`(seasonal·anchors·temp) | 없음(프론트 기온보간) |
 | 3 | 행거 조정 | `vmd-hanger-agent` | `VmdHangerAdjust.js`, `vmdCompute.js`(wb/sq/cpH/lowerMultApplies) | `GET /vmd/config`(행거상수), `PATCH /vmd/hanger` | `hangers`, `hanger_sizes`, `hanger_capacities`, `hanger_seasons`, `stores` |
 | 4 | 검증 & 조정 | `vmd-verification-agent` | `VmdVerifyAdjust.js`, `vmdCompute.js`(mq/iqm) | `GET /vmd/config`(tf/lower_fixed/color_mix/seasonal) | 읽기전용 |
 
@@ -35,8 +35,8 @@ description: VMD 행거 대시보드 탭 작업 라우팅. "VMD", "행거탭", "
 서브탭은 독립이 아니다. 아래 **공유 자산**을 건드리는 작업은 영향받는 서브탭 에이전트를 **모두** 위임하거나 메인이 직접 조정한다(`service/vmd-architecture.md`로 영향 범위 확인):
 
 - **`/vmd/config` 응답 키** — 5탭 전부가 단일 소스로 읽음. 키 추가/변경/삭제는 소비 서브탭 전부 회귀.
-- **`vmdCompute.js` 계산식** — `wb`/`sq`는 오버뷰·행거 공유, `mq`/`iqm`은 검증·오버뷰 헤더(`mq`) 공유, `lowerMultApplies`는 행거·검증 공유.
-- **DB 공유테이블 `inventory_snapshot`** — 오버뷰·월별수량 공유(현재고 SQL/필터 변경 시 둘 다).
+- **`vmdCompute.js` 계산식** — `wb`/`sq`는 오버뷰·행거 공유, `mq`/`iqm`은 검증·오버뷰 헤더(`mq`) 공유, `lowerMultApplies`는 행거·검증 공유. `tempInterpQty`는 월별수량 전용(공유 아님). 단 기존 공유 함수 수정 시 5탭 회귀.
+- **DB 공유테이블 `inventory_snapshot`** — 오버뷰 전용(현재고 SQL/필터). 월별수량은 더 이상 이 테이블을 읽지 않음(프론트 기온보간 전환).
 - **`vmd_service.py` 상수**(`VMD_STORE_MAP`/`_HANGER_*_SEASONAL` 등) — 다수 서브탭 동시 의존.
 
 단일 서브탭에 갇힌 작업(예: 검증탭 표시 색만 변경)은 해당 에이전트 단독.
@@ -45,7 +45,7 @@ description: VMD 행거 대시보드 탭 작업 라우팅. "VMD", "행거탭", "
 
 - **import 스모크**(필수): `python -c "from app.routers import vmd_router"` 무에러 — 또는 배포 후 `Application startup complete` + `/docs` 200. (`py_compile`만으론 미충족)
 - **5탭 렌더**: 오버뷰/기온&시즌/월별수량/행거조정/검증&조정 전부 정상 표시, **콘솔 에러 0**.
-- **인터랙션**: 날짜선택·남여분리·필터·계수저장·행거저장·월별 지연로딩 스피너 동작.
+- **인터랙션**: 날짜선택·남여분리·필터·계수저장·행거저장·월별수량 기온보간 즉시 렌더 동작.
 - **빌드리스 유지**(CDN Vue + ES모듈), **다른 탭 무손상**(라우팅 독립).
 - 공유 자산 변경 시 §2의 교차 영향 서브탭을 실제로 다시 확인.
 
