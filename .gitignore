@@ -1,0 +1,11 @@
+.DS_Store
+*.local.*
+.claude/settings.local.json
+.omc/
+**/.omc/
+**/state/
+**/*-unlock
+**/*.lock
+.env
+.env.*
+secrets/

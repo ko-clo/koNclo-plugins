@@ -1,0 +1,27 @@
+{
+  "name": "koclo-erp",
+  "version": "0.1.0+codex.20260621030026",
+  "description": "Shared KOCLO ERP development, safety, tab workflow, and verification policy for Codex and Claude Code.",
+  "author": {
+    "name": "KOCLO ERP Team"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "KOCLO ERP Team",
+    "shortDescription": "Development, safety, and tab-oriented workflows.",
+    "longDescription": "Apply shared KOCLO ERP engineering and safety rules, open an interactive work menu, route VMD and payrate subtabs, and run evidence-based verification.",
+    "developerName": "KOCLO ERP Team",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "KOCLO \uac1c\ubc1c \uba54\ub274\ub97c \uc5f4\uc5b4\uc918.",
+      "VMD \ud0ed \uc791\uc5c5\uc744 \uc2dc\uc791\ud574\uc918.",
+      "\ud604\uc7ac \ubcc0\uacbd\uc0ac\ud56d\uc744 \ud300 \uac80\uc99d \uaddc\uce59\uc73c\ub85c \ud655\uc778\ud574\uc918.",
+      "NAS, Docker, commit, push \uc548\uc804 \uc815\ucc45\uc744 \uc801\uc6a9\ud574\uc918."
+    ],
+    "brandColor": "#17324D"
+  }
+}

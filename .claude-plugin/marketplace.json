@@ -1,0 +1,20 @@
+{
+  "name": "koclo-team",
+  "description": "KOCLO ERP team development workflows for Claude Code and Codex.",
+  "owner": {
+    "name": "KOCLO ERP Team"
+  },
+  "plugins": [
+    {
+      "name": "koclo-erp",
+      "description": "Shared KOCLO ERP development, safety, tab workflow, and verification policy.",
+      "version": "0.1.0+codex.20260621030026",
+      "author": {
+        "name": "KOCLO ERP Team"
+      },
+      "source": "./plugins/koclo-erp",
+      "category": "development",
+      "tags": ["koclo", "erp", "development", "safety", "ui", "verification"]
+    }
+  ]
+}
