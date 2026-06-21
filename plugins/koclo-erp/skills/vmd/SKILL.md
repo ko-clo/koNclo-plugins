@@ -6,12 +6,8 @@ description: VMD 행거 대시보드 탭 작업 라우팅. "VMD", "행거탭", "
 # VMD 탭 작업 — 라우팅 스킬
 
 > VMD 행거 대시보드(`VmdView.js`)는 5개 서브탭으로 구성된다. 이 스킬은 **메인 Claude가 따르는 절차서**다.
-> 서브탭을 식별 → 전담 범위 위임 또는 직접 수행 → 결과 통합 → 전체 탭 회귀 검증.
+> 서브탭을 식별 → 전담 에이전트로 위임(Agent 도구) → 결과 통합 → 전체 탭 회귀 검증.
 > 탭 개발 표준은 `dev-blueprint` 스킬을 상위 규범으로 따른다(중복 서술 금지).
-
-작업 전에 `references/domain.md`, `references/architecture.md`, `references/feedback.md`를 읽는다.
-Claude Code에서 named agent가 사용 가능하면 §0의 에이전트에 위임한다. Codex 등 named agent가
-없는 런타임에서는 동일한 담당 범위를 메인 에이전트가 수행하되 파일 소유 경계를 그대로 지킨다.
 
 ## 0. 서브탭 ↔ 에이전트 ↔ 파일 매핑
 
@@ -28,15 +24,15 @@ Claude Code에서 named agent가 사용 가능하면 §0의 에이전트에 위�
 
 ## 1. 작업 흐름
 
-1. **요청 서브탭 식별** — 사용자 요청이 어느 서브탭(들)인지 §0 표로 판별. 불명확하면 사용자에게 한 번 확인한다.
-2. **단일 서브탭** → named agent 지원 시 해당 에이전트에 위임하고, 아니면 그 범위를 직접 수행한다.
-3. **여러 서브탭** → 충돌 없는 범위만 병렬화하고 공유 파일은 메인이 단독 조정한다.
+1. **요청 서브탭 식별** — 사용자 요청이 어느 서브탭(들)인지 §0 표로 판별. 불명확하면 AskUserQuestion.
+2. **단일 서브탭** → 해당 에이전트 1개에 위임.
+3. **여러 서브탭** → **병렬 위임**(단일 메시지에 다중 Agent 호출).
 4. **결과 통합** — 각 에이전트 변경/리스크를 메인이 취합.
 5. **전체 탭 회귀 검증** — §3.
 
 ## 2. 위임 규칙 (공유 자산 주의)
 
-서브탭은 독립이 아니다. 아래 **공유 자산**을 건드리는 작업은 영향받는 서브탭을 **모두** 검토하거나 메인이 직접 조정한다(`references/architecture.md`로 영향 범위 확인):
+서브탭은 독립이 아니다. 아래 **공유 자산**을 건드리는 작업은 영향받는 서브탭 에이전트를 **모두** 위임하거나 메인이 직접 조정한다(`service/vmd-architecture.md`로 영향 범위 확인):
 
 - **`/vmd/config` 응답 키** — 5탭 전부가 단일 소스로 읽음. 키 추가/변경/삭제는 소비 서브탭 전부 회귀.
 - **`vmdCompute.js` 계산식** — `wb`/`sq`는 오버뷰·행거 공유, `mq`/`iqm`은 검증·오버뷰 헤더(`mq`) 공유, `lowerMultApplies`는 행거·검증 공유.
@@ -55,9 +51,8 @@ Claude Code에서 named agent가 사용 가능하면 §0의 에이전트에 위�
 
 ## 4. 작업 전 필독
 
-- `references/domain.md` — 업무 규칙·용어·서브탭 관계
-- `references/architecture.md` — Vue/API/DB/데이터 흐름
-- `references/feedback.md` — 누적 피드백과 반복 방지 규칙
+- `.claude/memory/domain/vmd.md` — 업무 규칙·용어·서브탭 관계
+- `.claude/memory/service/vmd-architecture.md` — Vue/API/DB/데이터 흐름
 - `dev-blueprint` 스킬 — 탭 개발 표준(상위 규범)
 
 ## 경계 — md-agent 와 혼동 금지

@@ -3,7 +3,7 @@ description: 지급율 관리 탭 에이전트 목록 표시 · 직접 호출 �
 argument-hint: "[서브탭/영역 또는 요청 내용] (생략 시 에이전트 목록 표시)"
 ---
 사용자가 `/payrate $ARGUMENTS` 를 실행했다. 지급율 관리 탭(`/payrate`, `PayrateOverviewView.js`) 작업을 전담 에이전트로 위임하는 진입점이다.
-라우팅·회귀검증은 `payrate` 스킬, 업무규칙은 `${CLAUDE_PLUGIN_ROOT}/skills/payrate/references/domain.md`, 구조는 `${CLAUDE_PLUGIN_ROOT}/skills/payrate/references/architecture.md` 를 따른다.
+라우팅·회귀검증은 `payrate` 스킬, 업무규칙은 `.claude/memory/domain/payrate.md`, 구조는 `.claude/memory/service/payrate-architecture.md` 를 따른다.
 
 ## 인자가 **없을 때** (`/payrate` 단독) — 에이전트 목록 표시
 아래 표를 **그대로 출력**하고, "번호·영역·에이전트명 중 무엇으로든 지정하면 바로 위임합니다. 여러 영역이면 함께 적어주세요."라고 안내한 뒤 선택을 기다린다. (임의로 먼저 호출하지 않는다.)

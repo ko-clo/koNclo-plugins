@@ -7,12 +7,8 @@ description: 지급율 관리 탭 작업 라우팅. "지급율", "지급율 관�
 
 > 지급율 관리 대시보드(`PayrateOverviewView.js`, `/payrate`)는 3개 서브탭이 **단일 API 응답 1개를 공유**하는
 > 모놀리식 구조다(VMD처럼 서브탭=위젯=API 1:1이 아님). 이 스킬은 **메인 Claude가 따르는 절차서**다.
-> 요청 영역 식별 → 전담 범위 위임 또는 직접 수행 → 결과 통합 → 전체 탭 회귀 검증.
+> 요청 영역 식별 → 전담 에이전트 위임(Agent 도구) → 결과 통합 → 전체 탭 회귀 검증.
 > 탭 개발 표준은 `dev-blueprint` 스킬을 상위 규범으로 따른다(중복 서술 금지).
-
-작업 전에 `references/domain.md`, `references/architecture.md`, `references/feedback.md`를 읽는다.
-Claude Code에서 named agent가 사용 가능하면 §0의 에이전트에 위임한다. Codex 등 named agent가
-없는 런타임에서는 동일한 담당 범위를 메인 에이전트가 수행하되 파일 소유 경계를 그대로 지킨다.
 
 ## 0. 영역 ↔ 에이전트 ↔ 담당 매핑
 
@@ -26,13 +22,13 @@ Claude Code에서 named agent가 사용 가능하면 §0의 에이전트에 위�
 공통 셸: `frontend/js/views/PayrateOverviewView.js`(단일 파일, `activeTab` v-show로 3 서브탭 전환 + 공통 toolbar/날짜/포맷터).
 
 ## 1. 작업 흐름
-1. **요청 영역 식별** — §0 표로 어느 서브탭/백엔드인지 판별. 불명확하면 사용자에게 한 번 확인한다.
-2. **단일 영역** → named agent 지원 시 해당 에이전트에 위임하고, 아니면 그 범위를 직접 수행한다.
-3. **여러 영역** → 충돌 없는 범위만 병렬화하고 공유 파일은 메인이 단독 조정한다.
+1. **요청 영역 식별** — §0 표로 어느 서브탭/백엔드인지 판별. 불명확하면 AskUserQuestion.
+2. **단일 영역** → 해당 에이전트 1개 위임.
+3. **여러 영역** → **병렬 위임**(단일 메시지 다중 Agent 호출).
 4. **결과 통합** → 5. **전체 탭 회귀 검증**(§3).
 
 ## 2. 위임 규칙 (공유 자산 — 이 탭은 결합도가 높다)
-아래를 건드리면 영향 영역을 **모두** 검토하거나 메인이 직접 조정한다(`references/architecture.md`로 범위 확인):
+아래를 건드리면 영향 영역을 **모두** 위임하거나 메인이 직접 조정한다(`service/payrate-architecture.md`로 범위 확인):
 - **`/api/payrate/overview` 응답**(`meta`/`grand`/`stores[]`/`weekly_trend`) — payrate-data가 형태 소유, 3 서브탭이 소비. **스키마 변경 = data + 소비 서브탭 전부 회귀**.
 - **`PayrateOverviewView.js` 단일 파일** — 3 프론트 에이전트가 서로 다른 `v-show` 섹션·computed 그룹만 소유. 공통부(toolbar·tab bar·`setup()` return·날짜 fetch·포맷터 `fmtPr`/`fmtWon`/`fmtAmt`) 변경은 **메인이 조정**(충돌 방지).
 - **`PayrateTrendChart.js`** — 오버뷰·지급관리 공유.
@@ -46,9 +42,8 @@ Claude Code에서 named agent가 사용 가능하면 §0의 에이전트에 위�
 - **빌드리스 유지**·**다른 탭 무손상**.
 
 ## 4. 작업 전 필독
-- `references/domain.md` — 업무 규칙·용어·서브탭 관계
-- `references/architecture.md` — 파일/API/DB/데이터 흐름
-- `references/feedback.md` — 누적 피드백과 반복 방지 규칙
+- `.claude/memory/domain/payrate.md` — 업무 규칙·용어·서브탭 관계
+- `.claude/memory/service/payrate-architecture.md` — 파일/API/DB/데이터 흐름
 - `dev-blueprint` 스킬 — 탭 개발 표준
 
 ## 5. 경계 — '지급' 3중 충돌 주의 (반드시 구분)

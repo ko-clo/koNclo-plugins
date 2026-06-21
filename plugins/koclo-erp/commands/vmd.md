@@ -3,7 +3,7 @@ description: VMD 행거 대시보드 서브탭 에이전트 목록 표시 · 직
 argument-hint: "[서브탭 또는 요청 내용] (생략 시 에이전트 목록 표시)"
 ---
 사용자가 `/vmd $ARGUMENTS` 를 실행했다. VMD 행거 대시보드(5개 서브탭) 작업을 전담 에이전트로 위임하는 진입점이다.
-라우팅·회귀검증 규범은 `vmd` 스킬, 업무규칙은 `${CLAUDE_PLUGIN_ROOT}/skills/vmd/references/domain.md`, 구조는 `${CLAUDE_PLUGIN_ROOT}/skills/vmd/references/architecture.md` 를 따른다.
+라우팅·회귀검증 규범은 `vmd` 스킬, 업무규칙은 `.claude/memory/domain/vmd.md`, 구조는 `.claude/memory/service/vmd-architecture.md` 를 따른다.
 
 ## 인자가 **없을 때** (`/vmd` 단독) — 에이전트 목록 표시
 
