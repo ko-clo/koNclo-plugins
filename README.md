@@ -19,6 +19,8 @@ codex plugin add koclo-erp@koclo-team
 
 Start a new Codex thread, select **KOCLO ERP Team**, or ask `KOCLO 개발 메뉴를 열어줘`.
 
+Open `/hooks` once after installation, review the plugin's `SessionStart` hook, and trust it. New Codex threads then receive the KOCLO development and verification policy automatically.
+
 ## Claude Code installation
 
 Inside Claude Code, run the two commands separately:
@@ -32,7 +34,7 @@ Then use `/koclo`, `/vmd`, `/payrate`, or `/team-verify`.
 
 ## Project activation
 
-Plugin installation makes workflows available. To keep the development rules visible in every project turn, run `/koclo-project-setup` and review the proposed `AGENTS.md` or `CLAUDE.md` integration before accepting edits.
+Plugin installation makes workflows available, and the trusted `SessionStart` hook injects the common development policy into new sessions. Codex plugin installation does not modify repository files. For persistent repository-specific rules, run `koclo-project-setup` and review the proposed `AGENTS.md` or `CLAUDE.md` integration before accepting edits.
 
 ## Deliberate exclusions
 

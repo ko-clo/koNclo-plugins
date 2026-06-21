@@ -12,8 +12,10 @@
 - `verification-harness`: automated checks, diff review, and counterexample loop
 - `koclo-project-setup`: proposes persistent project integration
 
-Claude Code additionally discovers `agents/`, `commands/`, and `hooks/hooks.json`. Its `PreToolUse` hook blocks closed NAS/danger gates and asks for approval on every Docker command and every `git commit`/`git push`. Use `/nas on [minutes]`, `/danger on [minutes]`, and the corresponding `off`/`status` actions.
+Codex and Claude Code discover `hooks/hooks.json`. Its `SessionStart` hook automatically injects the KOCLO development and verification policy into new sessions. Codex requires the user to review and trust the hook with `/hooks` before it can run.
 
-Codex uses the common `skills/` packages and plugin interface metadata. Codex enforcement remains the sandbox and host approval policy; installing this plugin does not alter those permissions.
+Claude Code additionally discovers `agents/` and `commands/`. Its `PreToolUse` hook blocks closed NAS/danger gates and asks for approval on every Docker command and every `git commit`/`git push`. Use `/nas on [minutes]`, `/danger on [minutes]`, and the corresponding `off`/`status` actions.
+
+Codex uses the common `skills/` packages, plugin interface metadata, and bundled lifecycle hooks. Codex enforcement remains the sandbox and host approval policy; installing this plugin does not alter permissions or write `AGENTS.md` automatically. Run `koclo-project-setup` once per repository when persistent project instructions are required.
 
 This package intentionally contains no credentials, production host addresses, local permissions, or deployment commands.

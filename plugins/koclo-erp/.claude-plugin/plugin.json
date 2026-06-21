@@ -1,6 +1,6 @@
 {
   "name": "koclo-erp",
-  "version": "0.1.0+codex.20260621030026",
+  "version": "0.1.0+codex.20260621041402",
   "description": "Shared KOCLO ERP development, safety, tab workflow, and verification policy for Claude Code.",
   "author": {
     "name": "KOCLO ERP Team"
