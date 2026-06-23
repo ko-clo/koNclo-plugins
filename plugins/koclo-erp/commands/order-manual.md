@@ -17,6 +17,8 @@ NAS(testerp-app 컨테이너)에서 **수동 재생성**한다. 엔진은 NAS에
 ## 전제 — NAS 게이트
 - `100.99.51.88` 에 SSH 접속하므로 **NAS 게이트가 열려 있어야** 한다(닫혀 있으면 PreToolUse 훅이 차단).
   닫혀 있으면 사용자에게 **`/nas on 30`** 먼저 실행하라고 안내하고 중단.
+- 무인 키 인증이 되는 계정은 **`saykim4195`**(`-i ~/.ssh/id_rsa`)다. `orderhead1` 은 비밀번호
+  인증이라 BatchMode 무인 실행에서 거부되므로 쓰지 않는다.
 
 ## 사전 점검 (읽기 전용, 로컬 마운트 `/Volumes/자동주문/cache`)
 실행 전 **반드시** 통합주문 CSV 레이아웃을 검사한다. (참조재고 등 컬럼 삽입으로 수량 컬럼이
@@ -30,10 +32,12 @@ NAS(testerp-app 컨테이너)에서 **수동 재생성**한다. 엔진은 NAS에
 ## 실행
 1. 운영 `backorder_products` 누적원장이 갱신됨(운영 데이터 변경)을 1줄로 알리고 사용자 확인을 받는다
    (`/order-manual` 호출 자체를 승인으로 간주하되, 대상 날짜·운영DB 갱신을 명시).
-2. 확인되면 SSH로 배포된 래퍼 실행:
+2. 확인되면 SSH로 배포된 래퍼 실행. **`saykim4195` 는 docker.sock 직접 접근 권한이 없으므로**
+   래퍼의 `DOCKER` 변수를 `sudo -n /usr/local/bin/docker` 로 오버라이드해야 한다(안 하면
+   `permission denied ... docker.sock` 로 rc=1):
    ```
-   ssh -o BatchMode=yes -o ConnectTimeout=10 -p 2323 orderhead1@100.99.51.88 \
-     'bash /volume1/docker/testerp/backend/scripts/nas_manual_order.sh <date> <extra>'
+   ssh -o BatchMode=yes -o ConnectTimeout=10 -i "$HOME/.ssh/id_rsa" -p 2323 saykim4195@100.99.51.88 \
+     "DOCKER='sudo -n /usr/local/bin/docker' bash /volume1/docker/testerp/backend/scripts/nas_manual_order.sh <date> <extra>"
    ```
    - 래퍼가 없다(배포 안 됨)는 오류면: 먼저 NAS에서 `git pull`(승인 필요)로 배포하라고 안내하거나,
      `SCRIPT_PATH`/inline `docker exec ... manual_order_run.py --date <date>` 대안을 제시한다.
