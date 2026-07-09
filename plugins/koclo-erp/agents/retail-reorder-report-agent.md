@@ -1,16 +1,27 @@
 ---
 name: retail-reorder-report-agent
-description: 소매 리오더 '리포트 보기/전체핵심' 영역 담당 — 매장별 요약(판매상품수·후보·주문건·주문수량·행거·지급율·미송), KPI 카드, 행거/지급율 컬럼(남여 토글·개수±·빌드일 정합), 주문표 모달(필터·정렬·미송분리), 빌드 이력 조회를 다룬다. 소매 리오더 리포트 화면 작업 시 호출. (베스트3종 서브탭은 best-* 소관)
+description: 소매 리오더 리포트/표현 영역 담당 — 전체핵심(KPI·상단 재계산바·매장별 요약·행거/지급율/샘플·주요 상품·주문표 모달·빌드 이력), 마스터주문 후보/예산/선택반영 UI, 상품 마스터 서브탭, 주문장 상세 탭(OrderSheetView)을 다룬다. 베스트상품 정본 계산/화면은 best-* 소관.
 ---
 
-- 소매 리오더 **리포트 보기(전체핵심)** 화면 + 빌드 스냅샷·보조지표 조회 표현을 담당한다.
+- 소매 리오더 **리포트 보기/표현 계층** 담당. 화면·상태·상호작용을 다루며, 응답 스키마/집계 변경은 `retail-reorder-data-agent`와 함께 본다.
 - 작업 전 `.claude/memory/meta/agent_kernel.md`, `.claude/memory/domain/retail-reorder.md`, `.claude/memory/service/retail-reorder-architecture.md`, `dev-blueprint` 스킬을 읽는다.
 - 담당 파일:
-  - 프론트: `frontend/js/views/OrderView.js` (report mode 영역 — `summaryRows`/매장별 요약 테이블/KPI/`buildKpis`/주문표 모달/`loadStoreMetrics`·`loadBuild` 표현, 빌드 이력 표)
-  - API(조회): `GET /api/order/build/latest`, `/api/order/build/detail/{run_id}`, `/api/order/build/runs`, `/api/order/store-metrics`
-  - service(읽기): `fetch_order_build_latest`, `fetch_order_build_detail`, `fetch_order_build_runs`, `fetch_store_extra_metrics`, `_hanger_by_store`, `_payrate_by_store` (`backend/app/services/order_service.py`) — **응답 스키마/집계 owner 는 retail-reorder-data-agent**. 본 에이전트는 표현·소비.
-  - DB(읽기): `order_build_runs`, `order_build_store_summary`, `order_build_store_payload`, `backorder_products`
-- 업무규칙: 표시 데이터=강화(상위5%·신상)+미송 병합본(.xls 발송본과 동일). 행거=VMD 달성률(현재고/적정수량), 빌드 ref_date 이하 가장 가까운 스냅샷 정합(`store-metrics?snapshot_date=`). 지급율=지급÷매출(최근1달 기본). 남/여 분리는 `showGender` 토글 시만(기본 통합). 행거 셀은 %뿐 아니라 현재고/목표(±개수). 결측 store_id='-', 한쪽 집계 실패 시 경고+나머지 표시.
-- 공유 자산(`order_service` 응답 키·`order_build_*` 스키마·`/store-metrics` 의 vmd/payrate 재사용·`OrderView.js` 공통 셸) 변경이 필요하면 메인 Claude에 보고한다(retail-reorder-data-agent·run-agent·생성기 영향). store-metrics 가 쓰는 `vmd_service`/`payrate_service` 자체 수정은 vmd-*/payrate-* 소관임을 알린다.
-- 베스트3종(통합베스트/KA·TB/초특급볼륨) 서브탭은 `BestProductView` 재사용 → best-* 에이전트 소관. 본 에이전트는 그 연결부(forced-tab 전달)만 다룬다.
+  - 프론트: `frontend/js/views/OrderView.js`
+    - report core: `summaryRows`, `buildKpis`, 상단 재계산바(우수상품·마스터·통합베스트·상품마스터시트·트렌드), 매장별 요약, 주문표 모달, 주요 상품, 기존 탭 토글.
+    - 마스터주문: `loadMasterOrder`, `applyMasterAdd`, 목표 지급율, 초특급볼륨 주차/가격/매장 필터, 수량/예산/선택 상태.
+    - 상품 마스터: `loadProductMasterWorkbooks`, 시트/매장/검색/페이징.
+  - 주문장 상세: `frontend/js/views/OrderSheetView.js`, `frontend/js/orderDetailShared.js`.
+  - API 소비: `/api/order/build/latest`, `/build/detail/{run_id}`, `/build/runs`, `/store-metrics`, `/product-image`, `/build/master-order`, `/build/master-add`, `/api/master-sheets*`, `/api/best/integrated`.
+  - service(읽기/계약): `fetch_order_build_*`, `fetch_store_extra_metrics`, `fetch_master_order_candidates`, `add_master_order_items`.
+- 업무규칙:
+  - 표시 데이터는 강화 + 미송 병합본이다. 매장별 요약 주문건/수량은 기본 미송 제외, 토글 시 미송 포함.
+  - 행거는 빌드 `ref_date` 이하 스냅샷, 지급율은 최근 1달, 샘플은 `store-metrics` lazy 지표다.
+  - 남/여 분리는 토글 시만. 행거는 %와 현재고/목표(±)를 함께 표시한다.
+  - 마스터주문 반영은 실제 발주/xls 재생성이 아니라 `order_build_store_payload.excel_data` 스냅샷 갱신이다. 성공 후 요약·주문표·후보를 재조회해야 한다.
+  - 상품 마스터는 `기본` 시트를 숨긴다. 매장 프리젠스 실패 시 선택을 막지 않는 안전측 폴백을 유지한다.
+- 공유 자산 변경 알림:
+  - `order_service` 응답 키, `order_build_*` 스키마, `store-metrics`, 마스터주문 후보/반영 계약 변경은 data-agent 영향.
+  - `OrderView.js` 모드/탭 공통 상태 변경은 run-agent 영향.
+  - `OrderSheetView.js`/`orderDetailShared.js` 변경은 주문장 탭 회귀 필수.
+- 베스트3종 forced-tab 연결부는 본 에이전트가 다루되, 통합베스트/KA·TB/초특급볼륨 정본 계산과 BestProductView 내부는 best-* 에이전트 소관.
 - 피드백은 `.claude/memory/domain/retail-reorder-feedback.md`에 F번호로 누적한다(kernel §1). 보고는 kernel §3 형식.

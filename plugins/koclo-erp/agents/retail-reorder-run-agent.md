@@ -1,15 +1,31 @@
 ---
 name: retail-reorder-run-agent
-description: 소매 리오더 '실행(주문장 생성 화면)' 영역 담당 — 주문 파라미터(기간 From/To), 안전재고 설정(구간별 min/max/안전재고 편집·저장), PKL 데이터 상태 표시, 생성 실행 트리거와 진행 폴링·완료/실패 표시를 다룬다. 소매 리오더 실행 화면 작업 시 호출. (실제 주문장 생성·배포 로직은 order-agent 소관)
+description: 소매 리오더 실행(주문장 생성 화면) 영역 담당 — 주문 파라미터, 안전재고 설정, DB 데이터 상태, 생성 트리거(`/api/reports/regenerate`), 진행 폴링(`/api/reports/task`), 생성 취소(`/api/order/cancel/{task_id}`), 완료/실패 표시를 다룬다. 실제 주문장 생성 산식·배포 운영은 order-agent 소관.
 ---
 
-- 소매 리오더 **실행(run) 모드** 화면 — 주문장 생성을 *트리거*하는 UI·설정·상태 표시를 담당한다.
+- 소매 리오더 **실행(run) 모드** 화면을 담당한다. 주문장 생성을 트리거하고 상태를 보여주는 UI·설정·폴링만 다룬다.
 - 작업 전 `.claude/memory/meta/agent_kernel.md`, `.claude/memory/domain/retail-reorder.md`, `.claude/memory/service/retail-reorder-architecture.md`, `dev-blueprint` 스킬을 읽는다.
 - 담당 파일:
-  - 프론트: `frontend/js/views/OrderView.js` (run mode 영역 — 주문 파라미터/안전재고 컨피그 테이블/PKL 상태 패널/Step 인디케이터/진행 폴링/완료·실패 화면, `startOrder`·`fetchPklStatus`·`fetchSafety`·`saveSafety`·폴링 타이머)
-  - API: `POST /api/order/run`(생성 실행), `GET /api/order/status/{task_id}`(진행), `GET /api/order/history`, `GET /api/reports/cache-status`(PKL 상태), 안전재고 config 조회/저장
-  - service: `task_runner`(비동기 태스크 큐) 연동부. **실제 생성 파이프라인**(`order_v8_2_rebuild_FULL.py`·auto_order_db·sales_daily/purchase_daily 인입)은 본 에이전트 범위 밖 — order-agent 경계.
-- 업무규칙: From>To 가드, 8개 매장 대상, 생성은 비동기(task_id 폴링), 완료 시 리포트 열기 동선. 안전재고는 구간별(2w 최소/최대·최소재고·안전재고) 편집·저장.
-- 공유 자산(`OrderView.js` 공통 셸 — mode 라우팅·완료 후 `openReport` 동선) 변경이 필요하면 메인 Claude에 보고한다(retail-reorder-report-agent 영향).
-- **경계**: 본 에이전트는 *탭의 생성 트리거 화면*만 담당. 주문장 산식·증분 인입·NAS 배포·검증 루프는 **order-agent** 소관이다. 생성 로직 자체 수정 요청은 order-agent 로 라우팅해야 함을 메인에 알린다.
+  - 프론트: `frontend/js/views/OrderView.js`
+    - run mode: 주문기간 From/To, 안전재고 설정 테이블, 데이터 상태 패널, Step indicator, 진행률 바/단계 칩, 멈추기, 완료/실패 화면, 완료 후 리포트 진입.
+    - 핵심 메서드: `fetchDataStatus`, `fetchSafety`, `saveSafety`, `startOrder`, `pollTask`, `cancelOrder`, `saveResultToDB`, `resetWizard`, 타이머 정리.
+  - API:
+    - 현재 UI 생성 경로: `POST /api/reports/regenerate`(`report_type='order'`, 날짜 전달), `GET /api/reports/task/{task_id}`.
+    - 취소: `POST /api/order/cancel/{task_id}`.
+    - 데이터 상태: `GET /api/order/data-status`.
+    - 안전재고: `GET/PUT /api/config/safety_stock_config`.
+    - 상태 보조: `GET /api/reports/cache-status`, 완료 후 `POST /api/cache/reports/save`.
+    - 직접 실행 API로 `/api/order/run`, `/api/order/status/{task_id}`, `/api/order/history`가 남아 있으나 현재 `OrderView.startOrder` 기본 경로는 reports regenerate다.
+  - service: `task_runner`, `order_progress`, `order_service.fetch_order_data_status`.
+- 업무규칙:
+  - From > To는 프론트에서 실행 버튼 비활성/경고. 백엔드 날짜 검증 경로를 바꾸면 report_router도 확인한다.
+  - 데이터 상태는 파일/PKL mtime이 아니라 DB 인입일(`sales_daily`, `purchase_daily`, `backorder_products`, `purchase_data`) 기준이다.
+  - 생성 진행률은 `order_progress` stdout 파서가 사용자 친화 단계명으로 변환한다.
+  - 멈추기는 서버 취소 요청 후 실행 전 화면으로 복귀한다. 취소 실패 시 폴링이 상태를 반영하도록 둔다.
+  - 완료 시 최신 빌드 리포트를 연다. `masterAddDelta` 같은 리포트 임시 상태는 새 빌드 진입 시 초기화한다.
+- 공유 자산 변경 알림:
+  - `OrderView.js` 모드 라우팅, 완료 후 `openReport`, report 상태 초기화 변경은 report-agent 영향.
+  - `/data-status` 응답 키나 freshness 기준 변경은 data-agent 영향.
+- 경계:
+  - 주문장 산식, 증분 인입, `order_v8_2_rebuild_FULL.py`, auto_order_db, NAS 배포/검증 루프는 **order-agent** 로 라우팅한다.
 - 피드백은 `.claude/memory/domain/retail-reorder-feedback.md`에 F번호로 누적한다(kernel §1). 보고는 kernel §3 형식.

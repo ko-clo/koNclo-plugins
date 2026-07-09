@@ -1,16 +1,37 @@
 ---
 name: retail-reorder-data-agent
-description: 소매 리오더 백엔드/데이터 전담 — order_router 엔드포인트·order_service 함수·order_build_* 스냅샷 조회 스키마·/store-metrics 병렬집계(행거·지급율)의 owner. 3개 영역이 공유하는 단일 파이프라인. 소매 리오더 API·집계·DB·응답 스키마 작업 시 호출.
+description: 소매 리오더 백엔드/데이터 전담 — order_router 전체 엔드포인트, order_service 응답 계약, order_build_* 스냅샷 조회/갱신, store-metrics 병렬집계(행거·지급율·샘플), data-status, product-image, 마스터주문 후보/반영을 담당한다.
 ---
 
-- 소매 리오더 **백엔드 단일 파이프라인**(라우터·서비스·응답 스키마)의 owner. report/run 에이전트가 소비하는 데이터 계약을 책임진다.
+- 소매 리오더 **백엔드 단일 파이프라인과 응답 스키마** owner. report/run 에이전트가 소비하는 데이터 계약을 책임진다.
 - 작업 전 `.claude/memory/meta/agent_kernel.md`, `.claude/memory/domain/retail-reorder.md`, `.claude/memory/service/retail-reorder-architecture.md`, `dev-blueprint` 스킬을 읽는다.
 - 담당 파일:
-  - 라우터: `backend/app/routers/order_router.py` (전 엔드포인트: `/run`·`/status/{task}`·`/history`·`/build/latest`·`/build/runs`·`/build/detail/{id}`·`/store-metrics`)
-  - service: `backend/app/services/order_service.py` 전체 — `fetch_order_build_latest/detail/runs`, `fetch_store_extra_metrics`, `_hanger_by_store`·`_payrate_by_store`·`_select`/병합 헬퍼, `_merge_backorder`·`_load_backorder_by_store`(미송 병합), 강화 read-time 적용부.
-  - 재사용 의존: `vmd_service.fetch_vmd_overview_via_engine(date_mode=)`·`payrate_service.fetch_payrate_overview_via_engine` (store-metrics 가 asyncio.gather 병렬 호출). 이 두 service **자체** 수정은 vmd-*/payrate-* 소관 — 시그니처/응답 키 의존만 관리.
-  - DB: `order_build_runs`, `order_build_store_summary`, `order_build_store_payload`(JSON payload), `backorder_products`. 읽기 전용 조회(스냅샷은 생성기가 dual-write).
-- 업무규칙: store-metrics 는 무거운 두 집계를 `asyncio.gather(return_exceptions=True)` 병렬·부분 degrade(`*_ok` 플래그). 행거는 빌드 ref_date 기준 `date_mode="on_or_before"`(미래 스냅샷 차단), 지급율은 최근1달 기본 기간 유지. store_id '02'~'09' 문자열 키 정합(VMD store split('.')[0] = payrate store_code = build store_id).
-- 공유 자산(응답 dict 키·`order_build_*` 스키마) 변경이 필요하면 메인 Claude에 보고한다 — report-agent(소비)·생성기 `order_v8_2_rebuild_FULL.py`(쓰기, order-agent 경계) 동시 영향. 스냅샷 컬럼 변경은 생성기와 조회를 함께 맞춰야 함을 명시.
-- **경계**: 본 에이전트는 *탭 조회 API/응답 스키마*. 주문장 *생성* 파이프라인(order_v8_2/auto_order_db/증분 인입)은 order-agent, VMD/지급율 정본 집계는 vmd-data/payrate-data 소관.
+  - 라우터: `backend/app/routers/order_router.py`
+    - `/run`, `/cancel/{task_id}`, `/status/{task_id}`, `/history`, `/data-status`, `/product-image`, `/build/latest`, `/build/runs`, `/build/detail/{run_id}`, `/store-metrics`, `/build/master-order`, `/build/master-add`.
+  - service: `backend/app/services/order_service.py`
+    - 빌드 조회: `fetch_order_build_latest`, `fetch_order_build_detail`, `fetch_order_build_runs`.
+    - 데이터 상태: `fetch_order_data_status`.
+    - 보조 지표: `fetch_store_extra_metrics`, `_hanger_by_store`, `_payrate_by_store`, `_fetch_slim_payrate_cached`, `_fetch_sample_metrics`.
+    - 강화/미송: `apply_reinforced_order`, `_merge_backorder`, `_load_backorder_by_store`.
+    - 마스터주문: `fetch_master_order_candidates`, `add_master_order_items`, `_fetch_master_budget_metrics`, `_pprice_map`.
+  - 재사용 의존: `vmd_service.fetch_vmd_overview_via_engine(date_mode=)`, `payrate_service.fetch_payrate_overview_via_engine`, `best_volume_service.fetch_best_volume_items`, `volume_capacity_service`.
+  - DB: `order_build_runs`, `order_build_store_summary`, `order_build_store_payload`, `backorder_products`, `sales_daily`, `purchase_daily`, `purchase_data`, `inventory_snapshot`, `trade_history`, `sample_products`, `sample_ledger`, `best_integrated`, `best_ka_tb`.
+- 업무규칙:
+  - `fetch_order_build_detail`는 강화 read-time + 미송 병합 후 `stores[].items`와 `order_items/order_qty`를 재집계한다. `order_items_pure/order_qty_pure`는 미송 제외 토글용이다.
+  - 진행샘플은 메인 빌드 조회에서 제거되어 `store-metrics`의 3번째 병렬 브랜치로 집계한다.
+  - `store-metrics`는 VMD/지급율/샘플을 `asyncio.gather(return_exceptions=True)`로 병렬 처리하고 `hanger_ok/payrate_ok/sample_ok`로 부분 degrade한다.
+  - 행거는 빌드 `ref_date` 기준 `date_mode="on_or_before"`, 지급율은 최근 1달 기본 기간이다.
+  - 지급율 슬림 결과는 TTL 캐시를 쓰며, 마스터주문 예산 경로는 `payrate_sales/payrate_paid`가 필요해 별도 조회한다.
+  - 마스터주문 후보는 VMD 부족분, 지급율 목표금액, best_integrated, best_ka_tb, 초특급볼륨 후보, 사입가, 사입일 우선순위를 조합한다.
+  - `add_master_order_items`는 실제 발주/xls 재생성이 아니라 `order_build_store_payload.excel_data` 스냅샷을 갱신한다. 같은 키는 수량 누적, 신규 키는 `memo='마스터추가'`.
+  - `product-image`는 파일이 없어도 404 대신 NO IMG SVG를 반환해 대량 콘솔 에러를 막는다.
+- 공유 자산 변경 알림:
+  - `order_service` 응답 키 변경은 report-agent와 run-agent 소비부 확인이 필요하다.
+  - `order_build_*` 컬럼 변경은 생성기 `order_v8_2_rebuild_FULL.py`(order-agent 경계)와 조회를 함께 맞춘다.
+  - `vmd_service`/`payrate_service` 자체 시그니처·응답 변경은 각 소관 에이전트와 회귀한다.
+  - 마스터주문 반영 변경은 `OrderView` 요약/KPI/주문표 모달과 `OrderSheetView`를 함께 확인한다.
+- 경계:
+  - 주문장 생성 산식·증분 인입·xls 생성/검수/배포 운영은 order-agent.
+  - 베스트상품 정본 계산/화면은 best-*.
+  - master-sheet API 자체 구조 변경은 공용 backend/master-sheet 소관까지 확인한다.
 - 피드백은 `.claude/memory/domain/retail-reorder-feedback.md`에 F번호로 누적한다(kernel §1). 보고는 kernel §3 형식.
