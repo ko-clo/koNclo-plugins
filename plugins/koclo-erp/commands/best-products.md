@@ -13,9 +13,9 @@ argument-hint: "[서브탭 또는 요청 내용] (생략 시 에이전트 목록
 |---|---|---|---|
 | 0 | 통합베스트 | `best-integrated-agent` | 전사 교차 점수 랭킹(6요소 가중합), 성별 분리(여30+남20), 매장수임계·momentum 선정, 실판매2주·보충필요 |
 | 1 | KA·TB 마스터 | `best-ka-tb-agent` | product_code KA/TB 코드상품 전수(필터 없음), 매장별 SKU, score 정렬 |
-| 2 | 초특급볼륨 | `best-volume-agent` | KA/TB 누적 실판매(sold_qty) 매장별 Top17, 사입가·판매가(db_master_loader) |
+| 2 | 초특급볼륨 | `best-volume-agent` | 선택기간(1~8주) 실판매 Top17, KA/TB Top17 ∪ 전체 실판매 Top17, 7,000원 필터, 사입가·판매가 |
 
-> 공통 셸(`BestProductView.js`)·적재(`persist_best_products`)·`best_v2_router` JOIN·`db_master_loader` 가격 등 **여러 서브탭에 걸친 변경**은 `best-products` 스킬 §2(공유 자산)대로 영향 에이전트를 함께 위임한다.
+> 공통 셸(`BestProductView.js`)·적재(`persist_best_products`)·`best_v2_router` JOIN·`best_volume_service` 기간판매 재계산·`sales_daily` 가격 등 **여러 서브탭에 걸친 변경**은 `best-products` 스킬 §2(공유 자산)대로 영향 에이전트를 함께 위임한다.
 
 ## 인자가 **있을 때** (`/best-products <요청>`) — 직접 라우팅
 
@@ -24,7 +24,7 @@ argument-hint: "[서브탭 또는 요청 내용] (생략 시 에이전트 목록
 3. 에이전트가 공유 자산 변경을 보고하면 영향 서브탭을 추가 위임하거나 메인이 조정한다.
 4. 작업 후 `best-products` 스킬 §3 회귀 게이트(import 스모크·적재 검증·3탭 렌더·이미지/품번·콘솔 0·JOIN 복원·빌드리스·타 탭 무손상)로 검증한다.
 
-예) `/best-products 초특급볼륨 가격 0 고쳐` → `best-volume-agent`(+ db_master_loader 공유 영향 보고). `/best-products persist에 컬럼 추가` → 3 서브탭 병렬(적재 공유).
+예) `/best-products 초특급볼륨 가격 0 고쳐` → `best-volume-agent`(+ `sales_daily` 가격 소스/소매 리오더 영향 보고). `/best-products persist에 컬럼 추가` → 3 서브탭 병렬(적재 공유).
 
 ## 경계 — md-agent 와 혼동 금지
 "탭 수정/기능추가/조회 화면/적재 로직" → 이 커맨드(best-products). "베스트 활용 주문추천/적중률 기획/무엇을 넣을지" → md-agent.

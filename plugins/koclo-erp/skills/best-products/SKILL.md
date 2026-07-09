@@ -5,7 +5,7 @@ description: 베스트상품 탭 작업 라우팅. "베스트상품", "베스트
 
 # 베스트상품 탭 작업 — 라우팅 스킬
 
-> 베스트상품 탭(`BestProductView.js`)은 **읽기전용 3 서브탭**으로 구성된다. 데이터는 주문장 생성(`order_v8_2_rebuild_FULL.py`)이 DB에 적재한다. 이 스킬은 **메인 Claude가 따르는 절차서**다.
+> 베스트상품 탭(`BestProductView.js`)은 **읽기전용 3 서브탭**으로 구성된다. 통합베스트/KA·TB는 주문장 생성(`order_v8_2_rebuild_FULL.py`) 적재본을 읽고, 초특급볼륨은 최신 `best_volume` batch를 anchor로 삼아 선택기간 판매합을 조회 시점에 재계산한다. 이 스킬은 **메인 Claude가 따르는 절차서**다.
 > 서브탭 식별 → 전담 에이전트 위임(Agent 도구) → 결과 통합 → 전체 탭 회귀 검증.
 > 탭 개발 표준은 `dev-blueprint` 스킬을 상위 규범으로 따른다(중복 서술 금지).
 
@@ -15,10 +15,10 @@ description: 베스트상품 탭 작업 라우팅. "베스트상품", "베스트
 |---|---|---|---|---|---|---|
 | 0 | 통합베스트 | `best-integrated-agent` | `BestProductView.js`(integrated 탭·TAB_COLS) | `GET /api/best/integrated` | order_v8_2 `best_candidates`(점수 가중치)+`persist_best_products` | `best_integrated` |
 | 1 | KA·TB 마스터 | `best-ka-tb-agent` | `BestProductView.js`(ka_tb 탭) | `GET /api/best/ka-tb` | order_v8_2 KA/TB 코드 추출+persist | `best_ka_tb` |
-| 2 | 초특급볼륨 | `best-volume-agent` | `BestProductView.js`(volume 탭) | `GET /api/best/volume` | order_v8_2 `_volume_top`(VOLUME_TOP_N)+persist, **`db_master_loader` 가격** | `best_volume` |
+| 2 | 초특급볼륨 | `best-volume-agent` | `BestProductView.js`(volume 탭·판매기간·7천원 필터) | `GET /api/best/volume?weeks=1..8` | `best_volume_service.fetch_best_volume_items` — 최신 `best_volume` batch anchor + `sales_daily` 기간판매 Top17 재계산 | `best_volume`(anchor), `sales_daily`, `products`, `pm_suppliers`, `stores` |
 
 공통 셸: `frontend/js/views/BestProductView.js`(3탭 라우팅·이미지/프리뷰/모달·컬럼 렌더).
-공통 백엔드: `backend/app/routers/best_v2_router.py`(읽기 API) · `backend/scripts/order_v8_2_rebuild_FULL.py`(`persist_best_products` 적재) · `backend/app/db/models.py`(Best* 모델).
+공통 백엔드: `backend/app/routers/best_v2_router.py`(읽기 API) · `backend/app/services/best_volume_service.py`(초특급볼륨 기간 재계산) · `backend/scripts/order_v8_2_rebuild_FULL.py`(`persist_best_products` 적재) · `backend/app/db/models.py`(Best* 모델).
 메타: `GET /api/best/meta`(3탭 최신 batch_date·건수).
 
 ## 1. 작업 흐름
@@ -35,8 +35,9 @@ description: 베스트상품 탭 작업 라우팅. "베스트상품", "베스트
 
 - **`persist_best_products`**(order_v8_2) — 3테이블을 **한 함수**에서 batch_date 단위로 적재. 컬럼/스키마/적재 로직 변경은 3탭 전부 회귀.
 - **`best_v2_router.py`** — 4 엔드포인트 한 파일. JOIN(products/pm_suppliers/stores) 변경은 소비 서브탭 전부.
+- **`best_volume_service.py`** — 초특급볼륨 탭과 소매 리오더 마스터주문 후보가 공유하는 기간판매 Top 계산. `weeks`/`include_all_top`/가격 조회 변경은 양쪽 회귀.
 - **`BestProductView.js`** — 3탭 한 파일. 공유 이미지/프리뷰/모달·`fmt`·필터 변경은 3탭 전부.
-- **`db_master_loader` 가격**(regular/purchase) — 초특급볼륨 가격 + 주문장 전체 매출/발주 금액에 동시 영향.
+- **`sales_daily` 가격 소스**(regular/purchase 최신 non-null) — 초특급볼륨 가격 + 주문장 전체 매출/발주 금액에 동시 영향. 적재본 가격은 `db_master_loader`, 조회 재계산 가격은 `best_volume_service` LATERAL 조회 패턴.
 - **점수 상수**(`BEST_SCORE_WEIGHTS`·`BEST_MIN_AVG_SCORE`·`VOLUME_TOP_N` 등) — 통합·볼륨 선정에 영향.
 - **batch_date 스냅샷 모델**(Best* 3테이블 공통 키).
 
@@ -47,7 +48,8 @@ description: 베스트상품 탭 작업 라우팅. "베스트상품", "베스트
 - **import 스모크**(필수): `python -c "from app.routers import best_v2_router"` 무에러 — 또는 배포 후 `Application startup complete` + `/docs` 200. (`py_compile`만으론 미충족)
 - **적재 검증**: order_v8_2 `USE_DB=1` 실행 → `[베스트 DB저장] batch=… integrated/ka_tb/volume` 건수 + 3테이블 행수 일치. (persist 로직 변경 시)
 - **3탭 렌더**: 통합베스트/KA·TB마스터/초특급볼륨 전부 정상 표시, **이미지·품번 노출**, **콘솔 에러 0**.
-- **인터랙션**: 성별 필터(통합)·매장 필터(KA·TB/볼륨)·이미지 호버 프리뷰·클릭 모달 동작.
+- **인터랙션**: 성별 필터(통합)·매장 필터(KA·TB/볼륨)·초특급볼륨 판매기간(1~8주)·7,000원 필터·이미지 호버 프리뷰·클릭 모달 동작.
+- **초특급볼륨 재계산**: `/api/best/volume?weeks=1..8`이 latest `best_volume.batch_date`를 기준으로 `sales_daily` 기간판매를 재집계하고, `include_all_top=True` 합집합 후보(KA/TB Top17 ∪ 전체 실판매 Top17)를 반환.
 - **JOIN 복원**: API 응답에 사입처·품명·색·사이즈 빈 행 0(전 행 product_id 매핑).
 - **빌드리스 유지**(CDN Vue + ES모듈), **다른 탭 무손상**(라우팅 독립).
 - 공유 자산 변경 시 §2의 교차 영향 서브탭을 실제로 다시 확인.
