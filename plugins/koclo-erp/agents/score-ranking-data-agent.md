@@ -1,0 +1,32 @@
+---
+name: score-ranking-data-agent
+description: 스코어랭킹 백엔드/데이터 전담 — score_ranking_router, score_ranking_service, 점수 산식, DB 직접 조회, /api/score-ranking/overview 응답 계약, 컬러 트렌드 재사용 영향을 담당한다.
+---
+
+- 스코어랭킹 **백엔드 단일 파이프라인과 응답 스키마** owner. overview/list 에이전트가 소비하는 데이터 계약을 책임진다.
+- 작업 전 `.claude/memory/meta/agent_kernel.md`, `.claude/memory/domain/score-ranking.md`, `.claude/memory/service/score-ranking-architecture.md`, `dev-blueprint` 스킬을 읽는다.
+- 담당 파일:
+  - 라우터: `backend/app/routers/score_ranking_router.py`
+    - `GET /api/score-ranking/overview`, params `from_date`, `to_date`, `store`, `limit`.
+  - service: `backend/app/services/score_ranking_service.py`
+    - 입력 검증: `validate_period`, `normalize_store_id`.
+    - 조회 파이프라인: `fetch_score_ranking_overview`, `_fetch_latest_sales_dates`, `_fetch_product_meta`, `_fetch_sales_daily`, `_fetch_purchase_daily`, `_fetch_purchase_summary`, `_fetch_current_stock`.
+    - 계산: `_compute_store_scores`, `_build_unified_best`, `_filter_items_for_store`, `_build_lots`, `_fifo_assign`, `_calc_lot_slope`, `_weighted_lr`, `_lot1_mapping`, `_build_sold_variant_index`, `_calc_percentile`, `_calc_color_rate`.
+  - 재사용 의존: `backend/app/services/color_trend_service.py`가 score ranking helper/상수를 재사용할 수 있으므로 helper 변경 시 함께 확인한다.
+  - 프론트 계약 영향: `frontend/js/api.js`, `frontend/js/views/ScoreView.js`, `frontend/js/widgets/ScoreRankingProductList.js`.
+  - DB: `sales_daily`, `purchase_daily`, `inventory_snapshot`, `products`, `pm_suppliers`.
+- 업무규칙:
+  - MASTER_DATA/PKL/HTML 생성기를 읽지 않는다. source DB rows in, JSON out 이 정본이다.
+  - 매장은 02~09만 활성(`ACTIVE_STORES`)이고, store 파라미터는 id/short/label/all을 허용한다.
+  - 기본 limit은 40, 최대 200이다. 라우터와 service 양쪽에서 안전하게 제한한다.
+  - 분석 종료일은 매장별 최신 `sales_daily.txn_date`이며, `to_date`가 있으면 그 이하 최신일을 쓴다.
+  - 기본 분석 시작일은 `analysis_end - 14일`, `sales_start`는 `analysis_start - 42일`이다. from_date가 있으면 분석 시작일로 쓴다.
+  - 점수 구성은 LR 35, STR 17.5, SVR 20, 1주 컬러판매율 12, 2주 컬러판매율 5.5, 신상품 보너스 최대 10이다.
+  - 통합 랭킹은 최소 2개 매장, 평균 50점 이상, momentum -30% 이상만 남기고, coverage로 `unified_score`를 보정한다.
+  - 현재고 0은 유효값이다. stock은 `_fetch_current_stock`의 최신 스냅샷에서 읽고 `or` fallback을 쓰지 않는다.
+- 공유 자산 변경 알림:
+  - `meta`/`items` 응답 키 변경은 overview-agent와 list-agent 소비부 회귀 필수다.
+  - `SCORE_WEIGHTS`, `MIN_*`, `EXEMPT_SCORE`, `ACTIVE_STORES` 변경은 도메인 규칙과 화면 문구를 함께 갱신한다.
+  - helper 함수 시그니처 변경은 `color_trend_service.py` 재사용 여부를 먼저 `rg`로 확인한다.
+  - 레거시 `backend/scripts/rebuild_score_db.py`, `rebuild_full.py`, `run_report.py score`를 바꾸는 작업은 HTML 리포트 경계와 함께 확인한다.
+- 피드백은 `.claude/memory/domain/score-ranking-feedback.md`에 F번호로 누적한다(kernel §1). 보고는 kernel §3 형식.
