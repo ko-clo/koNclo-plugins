@@ -14,9 +14,9 @@ description: KOCLO 브랜치 코드리뷰 라우팅. "코드리뷰", "코드 리
 | # | 차원 | 에이전트 | 담당 검사 (요청 검사내용 매핑) |
 |---|---|---|---|
 | 0 | 의도·비즈니스 | `code-review-intent-agent` | **왜 수정/추가했는지** — 커밋메시지·도메인 메모리 대조, 의도 대비 구현 정합, 요구 누락/과잉, 회귀 위험 |
-| 1 | 코드 품질 | `code-review-quality-agent` | **기본 리뷰 절차** — 에러 요소, 예외 처리, 리팩토링·네이밍·매직값, 책임 분리(CLAUDE.md 개발규칙) |
+| 1 | 코드 품질 | `code-review-quality-agent` | **기본 리뷰 절차** — 에러 요소, 예외 처리, 리팩토링·네이밍·매직값, 책임 분리(CLAUDE.md 개발규칙) + **보안·시크릿·주입**(하드코딩 비밀·SQL 인젝션·민감정보 노출·인증 우회) ⭐ |
 | 2 | 계층(step) | `code-review-layer-agent` | **각 step 체크** — UI(Vue)↔API(router)↔DB IO(service/SQL) 계약 정합, 누락 계층, **기대값(결과값)** 정합 + import 스모크 |
-| 3 | 데이터·스키마 | `code-review-data-agent` | **DDL/DML** — 스키마 변경 시 정규화 여부, FK/UNIQUE/인덱스, 마이그레이션 안전성, 데이터 영향 |
+| 3 | 데이터·스키마 | `code-review-data-agent` | **DDL/DML** — 정규화, FK/UNIQUE/인덱스, 마이그레이션 안전성, 데이터 영향 + **배포·마이그레이션 정합**(ORM↔DDL 존재·운영DB 선적용) + **인입 포맷 가드**(컬럼 밀림 방어) ⭐ |
 
 > diff에 해당 차원이 **전혀 없으면** 그 에이전트는 생략한다(예: 프론트만 바뀌면 data-agent 스킵). 어느 차원이 걸리는지는 §2의 diff 분류로 판단.
 

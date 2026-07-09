@@ -19,10 +19,10 @@ dbname 만 `testerp` 로 바꾼 값을 `SYNC_PROD_DSN` 으로 주입한다(같�
 - FDW 호스트는 강제 지정 불필요 — 스크립트가 `localhost:5432` 부터 자동 후보 시도(같은 클러스터).
 
 ## 동기화 대상 — 프리셋(PRESET)
-기본 동작은 **아래 9개 테이블만** 동기화한다. 전체 미러가 아니다.
+기본 동작은 **아래 10개 테이블만** 동기화한다. 전체 미러가 아니다.
 
 ```
-stores,pm_suppliers,products,sales_daily,purchase_daily,missed_orders,trade_ledger,inventory_snapshot,daily_trade_ledger
+stores,pm_suppliers,products,sales_daily,purchase_daily,missed_orders,trade_ledger,inventory_snapshot,daily_trade_ledger,backorder_products
 ```
 - preview·go 모두 이 프리셋을 `--tables` 로 넘긴다. 전체 미러는 `go all`.
 
@@ -57,14 +57,14 @@ ssh -p 2323 -i ~/.ssh/id_rsa saykim4195@100.99.51.88 2>/dev/null \
 `KOCLO_ERP_DB_DSN`/파생 DSN 은 컨테이너 내부에서만 펼쳐진다(비번 미출력).
 
 - **status** 또는 **인자 없음** → 미리보기(읽기전용, 변경 없음). **여기서 멈춘다.**
-  `MODE` = `--dry-run --tables stores,pm_suppliers,products,sales_daily,purchase_daily,missed_orders,trade_ledger,inventory_snapshot,daily_trade_ledger`
+  `MODE` = `--dry-run --tables stores,pm_suppliers,products,sales_daily,purchase_daily,missed_orders,trade_ledger,inventory_snapshot,daily_trade_ledger,backorder_products`
 
-- **go** → 프리셋 9개 동기화(파괴적). 순서:
+- **go** → 프리셋 10개 동기화(파괴적). 순서:
   1. 먼저 위 `--dry-run` 으로 행수 차이를 요약해 보여주고, **해당 dev 테이블이 prod 스냅샷으로
      덮어써짐** + **CASCADE 로 범위 밖 자식 테이블이 비워질 수 있음**을 1줄씩 경고한 뒤 확인을
      받는다(이미 'go' 친 것을 승인으로 간주하되, dev-only 데이터(daily_trade_ledger,
      trade_ledger 초과분)가 사라짐을 명시).
-  2. 확인되면 `MODE` = `--yes --tables stores,pm_suppliers,products,sales_daily,purchase_daily,missed_orders,trade_ledger,inventory_snapshot,daily_trade_ledger`
+  2. 확인되면 `MODE` = `--yes --tables stores,pm_suppliers,products,sales_daily,purchase_daily,missed_orders,trade_ledger,inventory_snapshot,daily_trade_ledger,backorder_products`
   3. 검증 섹션(행수 불일치 개수)을 그대로 보고한다.
 
 - **go all** → 전체 미러(프리셋 무시, 모든 dev-only 데이터 소실). 강한 경고 후:

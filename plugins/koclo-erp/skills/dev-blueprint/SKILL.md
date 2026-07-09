@@ -26,6 +26,8 @@ description: KOCLO 프론트백 분리 개발 표준. "dev-blueprint", "blueprin
 | **차트** | **CDN Chart.js를 Vue 컴포넌트 `onMounted`에서 init.** 서버 HTML에 차트를 굽지 않는다. |
 | **빌드리스** | CDN Vue3 + ES모듈만. 번들러·node_modules·빌드 단계 도입 금지. |
 | **책임 분리** | 계산(service) / 입출력(router) / 표현(Vue) 3계층 분리. (CLAUDE.md 1·4항) |
+| **컴포넌트 분리** | 탭/섹션 1개 = 컴포넌트 1개. `View`는 **셸**(툴바·탭바·fetch·공유상태)만 담고, 표현은 `widgets/<Feature><Part>.js`로 분리한다. View가 비대해지면(≈300줄+) 반드시 쪼갠다. 한 파일이 여러 탭 렌더를 다 품지 않는다. (CLAUDE.md 4·6항) |
+| **CSS 분리** | 인라인 CSS 지양. 피처 전용 스타일은 `frontend/css/<feature>.css`에 **`.<feature>` 루트로 스코프**해 분리하고(전역 `theme.css` 무충돌), `index.html`에 `?v=` 캐시버스팅 `<link>`로 1회 로드한다. 컴포넌트 템플릿은 클래스명을 쓰고, 인라인 style은 **동적 값**(밴딩 색상 등)만 허용. 선례: `wholesale-golden.css`. |
 | **커밋** | 명시적 승인 전 `git commit` 금지. |
 
 ## 2. 표준 파일 구조 & 명명
@@ -36,14 +38,17 @@ description: KOCLO 프론트백 분리 개발 표준. "dev-blueprint", "blueprin
 backend/app/services/<feature>_service.py   ← 순수 계산: (session, 파라미터) → dict.  DB 쿼리·집계만. HTML/IO 없음.
 backend/app/routers/<feature>_router.py      ← APIRouter(prefix="/api/<feature>"). service 호출 → JSON 반환.
                                                  main.py 에 include_router 1줄 등록.
-frontend/js/views/<Feature>View.js           ← Vue 셸(탭/툴바/상태). onMounted 에서 fetch. iframe 없음.
-frontend/js/widgets/<Feature><Part>.js       ← 카드/표/차트 등 표현 컴포넌트(재사용 단위).
+frontend/js/views/<Feature>View.js           ← Vue 셸(탭/툴바/상태)만. onMounted 에서 fetch, 활성 탭 컴포넌트에 props 전달. iframe 없음.
+frontend/js/widgets/<Feature><Part>.js       ← 탭/섹션 1개 = 컴포넌트 1개. 카드/표/차트 등 표현 단위(자기완결: 검색·정렬·스크롤·Excel 등).
+frontend/css/<feature>.css                    ← 피처 전용 CSS. `.<feature>` 루트 스코프. index.html 에 `?v=` link 1줄.
 frontend/js/api.js                            ← get<Feature>(...) 메서드 1개 추가.
 ```
 
 - 서비스 함수: 동사 시작 (`fetch_*`, `compute_*`, `build_*`).
 - 라우터 클래스/엔드포인트: 명사 prefix + 동작.
 - Vue 컴포넌트: `PascalCase`, 위젯은 `<Feature>` 접두.
+- **탭별 컴포넌트**: 탭(또는 논리 섹션)마다 별도 `widgets/` 파일로 분리한다. View 는 어느 탭을 그릴지 고르고 데이터를 내려주는 셸에 그친다 — 탭 렌더 로직을 View 안에 쌓지 않는다.
+- **데이터 fetch 위치**: 여러 탭이 같은 파이프라인 산출을 쓰면 셸이 **1회 fetch** 후 각 컴포넌트에 슬라이스를 props 로 넘긴다(비싼 재호출 방지). 탭별로 소스가 완전히 다르면 컴포넌트가 각자 fetch 한다.
 
 ## 3. 백엔드 표준 템플릿
 
@@ -202,6 +207,25 @@ export default {
 - **다크 네이티브 컨트롤**: `<input type="date">` 등 네이티브 입력엔 `color-scheme:dark`를 줘 다크 테마에서 달력 아이콘 등이 보이게 한다.
 - **`v-for` 키**: 안정적 식별자(`store+'|'+supplier` 등)를 쓰고 인덱스 키는 지양한다(정렬/필터 시 DOM 재사용 오류 방지).
 
+### 4-6. 컴포넌트 분리 & CSS 추출 (MUST — §1)
+- **탭 = 컴포넌트**: 탭/섹션마다 `frontend/js/widgets/<Feature><Part>.js` 하나. View 는 탭바·툴바·fetch·`loading` 만 갖는 셸. 활성 탭 컴포넌트에 데이터를 props 로 내려주고, 컴포넌트는 순수 표현(검색/정렬/스크롤/Excel 자기완결).
+  ```js
+  // View 셸 — 어느 탭을 그릴지만 결정
+  template: `
+    <div class="<feature>">
+      <div class="view-toolbar">...탭바...</div>
+      <div class="page-body">
+        <div v-if="loading" class="loading-box"><div class="spinner"></div><div><작업명> 불러오는 중…</div></div>
+        <template v-else>
+          <feature-main-grid   v-show="tab===0" :products="data.products"></feature-main-grid>
+          <feature-male-grade  v-show="tab===1" :rows="data.male_grades"></feature-male-grade>
+          <feature-purchase-cut v-show="tab===2" :rows="data.purchase_cut"></feature-purchase-cut>
+        </template>
+      </div>
+    </div>`,
+  ```
+- **CSS 추출**: 컴포넌트 템플릿에 대량 인라인 style 을 박지 않는다. 피처 CSS 는 `frontend/css/<feature>.css` 로 빼고 **`.<feature>` 루트로 스코프**(전역 무충돌), `index.html` 에 `?v=` link 1줄. 서버 HTML 생성기의 `<style>` 을 이식할 때는 **해당 스코프의 3탭 관련 규칙만 선별**한다(편집탭 등 iframe 잔존 영역 규칙은 남긴다). 동적 값(밴딩 색상 등)만 인라인 허용.
+
 ## 5. 작업 순서 (Phase)
 
 1. **Phase 1 — 백엔드**: 정본 식별(§3-3) → service(SQL 이식+계산) → router(입력검증 포함) → main.py 등록 → **import 스모크 테스트**(아래) → API JSON을 기존 `<feature>_latest.html` 수치와 **대조 검증**. *운영 DB가 로컬에 없으면(예: NAS 전용) 이 수치대조는 **배포 후로 분리**하고, 그 전엔 SQL 논리동등성으로 대체한다.*
@@ -222,11 +246,15 @@ export default {
 - [ ] 긴 리스트 내부 스크롤·sticky 헤더 동작
 - [ ] 다른 탭 무손상 (라우팅 독립 확인)
 - [ ] 빌드리스 유지 (CDN Vue + ES모듈, 번들러 미도입)
+- [ ] **탭별 컴포넌트 분리**: 각 탭이 독립 `widgets/` 컴포넌트, View 는 셸(탭 렌더 로직 미포함, 비대하지 않음)
+- [ ] **CSS 분리**: 인라인 CSS 최소, 피처 CSS 는 `.<feature>` 스코프 파일로 추출·`index.html` 링크
 - [ ] 콘솔 에러 0, API 예외 처리 존재
 - [ ] 독립 리뷰어 승인 (자기승인 아님)
 
 ## 7. 금지 사항
 - 화면 본문 iframe 임베드
+- 탭 렌더 로직을 `View` 한 파일에 몰아넣기(탭별 컴포넌트 미분리)
+- 컴포넌트 템플릿에 대량 인라인 CSS(피처 CSS 파일 미추출)
 - 라우터/서비스에서 HTML 문자열 생성·반환
 - 정본 미확인 이식(파일모드/DB모드 혼동), 임의 SQL 신작
 - 분모를 기간필터로 0 만들기 / 밴딩·임계값 임의 단순화
