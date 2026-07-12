@@ -23,6 +23,7 @@ description: KOCLO 프론트백 분리 개발 표준. "dev-blueprint", "blueprin
 |---|---|
 | **분리 범위** | 본문 전체 Vue화. **iframe 금지.** `*_latest.html`을 화면 본문으로 임베드하지 않는다. |
 | **데이터 소스** | **DB 직접 쿼리 신규 엔드포인트** (앱 async 엔진 `engine.connect()` + `text()`). HTML 생성기와 분리. 새 `psycopg2`/별도 DSN 경로를 만들지 말고 앱 엔진으로 일원화. |
+| **데이터 로더** | **공유 monolith `master_data` 금지.** `db_master_loader.build_master_data()` 처럼 전 매장·전 섹션을 담은 무거운 객체를 웹 워커에 상주시켜 여러 탭이 공유하지 않는다(워커 RSS 선형증가·수백 MB 직렬화 → **2026-07-05 host OOM 사고**의 근본원인). 각 탭은 **자기가 실제로 소비하는 컬럼/섹션만** 만드는 **고유 경량 loader**를 갖는다. 미소비 섹션(예: daily 시계열)은 애초에 만들지 않고, 필요하면 매장 단위 임시 생성 후 즉시 폐기한다. **파리티**: 골든 산식/함수는 그대로 재사용(새 산식 금지). 선례: `backend/scripts/post_process_db_direct.py` `build_post_process_md_direct`(후처리 /grid 전용 DB 직독 경량 빌더) + 야간배치 프리컴퓨트 테이블 직독. |
 | **차트** | **CDN Chart.js를 Vue 컴포넌트 `onMounted`에서 init.** 서버 HTML에 차트를 굽지 않는다. |
 | **빌드리스** | CDN Vue3 + ES모듈만. 번들러·node_modules·빌드 단계 도입 금지. |
 | **책임 분리** | 계산(service) / 입출력(router) / 표현(Vue) 3계층 분리. (CLAUDE.md 1·4항) |
@@ -248,6 +249,7 @@ export default {
 - [ ] 빌드리스 유지 (CDN Vue + ES모듈, 번들러 미도입)
 - [ ] **탭별 컴포넌트 분리**: 각 탭이 독립 `widgets/` 컴포넌트, View 는 셸(탭 렌더 로직 미포함, 비대하지 않음)
 - [ ] **CSS 분리**: 인라인 CSS 최소, 피처 CSS 는 `.<feature>` 스코프 파일로 추출·`index.html` 링크
+- [ ] **고유 데이터 로더**: 공유 `build_master_data` 상주 재사용 없이 탭 전용 경량 loader 로 소비 컬럼만 로드(파리티 유지) — 선례 `build_post_process_md_direct`
 - [ ] 콘솔 에러 0, API 예외 처리 존재
 - [ ] 독립 리뷰어 승인 (자기승인 아님)
 
@@ -255,6 +257,7 @@ export default {
 - 화면 본문 iframe 임베드
 - 탭 렌더 로직을 `View` 한 파일에 몰아넣기(탭별 컴포넌트 미분리)
 - 컴포넌트 템플릿에 대량 인라인 CSS(피처 CSS 파일 미추출)
+- 공유 monolith `master_data`(`build_master_data`) 를 웹 워커에 상주시켜 여러 탭이 공유 (탭 전용 경량 loader 미분리 → 워커 RSS 팽창·OOM)
 - 라우터/서비스에서 HTML 문자열 생성·반환
 - 정본 미확인 이식(파일모드/DB모드 혼동), 임의 SQL 신작
 - 분모를 기간필터로 0 만들기 / 밴딩·임계값 임의 단순화
