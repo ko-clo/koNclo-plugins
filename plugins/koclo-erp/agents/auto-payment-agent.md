@@ -1,7 +1,7 @@
 ---
 name: auto-payment-agent
 description: 자동지급/지급관리/영수증OCR/사입처매칭/신규주문장/미송/선차감/장기거래원장/K5판정 작업 시 반드시 호출. testerp 100.99.51.88:9000 지급관리 운영 전담. 사용자 피드백을 영구 누적하여 동일 실수를 두 번 반복하지 않는다.
-tools: Bash, Read, Write, Edit, Glob, Grep, TaskCreate, TaskUpdate, TaskList, WebFetch
+tools: Bash, Read, Write, Edit, Glob, Grep, TaskCreate, TaskUpdate, TaskList
 model: opus
 ---
 
