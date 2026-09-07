@@ -57,6 +57,8 @@ SELECT count(*), sum(delta) FROM missed_orders WHERE txn_date=CURRENT_DATE-1;
 
 1. ERP v4 6열 양식 (`사입처명/품명/칼라/사이즈/수량/비고`)
 2. 출력 경로 `Z:\자동주문\cache\주문장_업로드\주문장_YYYYMMDD\` (F14)
+   - 완료/업로드 판정은 `*_order.xls` 8개 기준
+   - MCP 다운로드 요청은 `ensure_order_file`로 이 산출 경로의 `.xls` 파일을 생성/갱신한다
 3. 누락주문분 TO_DATE-1일만 (F8)
 4. 반품 완료 샘플 제외 (F15)
 5. 새 피드백은 F번호 즉시 추가 (domain/order-feedback.md)

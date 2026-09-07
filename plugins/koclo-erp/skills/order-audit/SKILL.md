@@ -29,7 +29,7 @@ python3 backend/scripts/audit_order_xls.py explain <파일> --product 레시피�
 python3 backend/scripts/audit_order_xls.py compare <파일A> <파일B> [--product 레시피반팔]
 ```
 
-산출물 위치(로컬 마운트): `/Volumes/자동주문/cache/주문장_업로드_new/주문장_YYYYMMDD/*.xls`
+산출물 위치(로컬 마운트): `/Volumes/자동주문/cache/주문장_업로드/주문장_YYYYMMDD/*.xls`
 
 ---
 

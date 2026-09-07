@@ -5,13 +5,13 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
-const gateNames = new Set(['nas', 'danger']);
+const gateNames = new Set(['nas', 'danger', 'testfile']);
 const actions = new Set(['on', 'off', 'status']);
 const gate = process.argv[2];
 const action = process.argv[3] || 'status';
 
 if (!gateNames.has(gate) || !actions.has(action)) {
-  console.error('Usage: gate-control.mjs <nas|danger> <on [minutes]|off|status>');
+  console.error('Usage: gate-control.mjs <nas|danger|testfile> <on [minutes]|off|status>');
   process.exit(2);
 }
 

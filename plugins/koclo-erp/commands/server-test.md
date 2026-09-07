@@ -59,6 +59,16 @@ ssh ... 2>/dev/null 'git -c safe.directory=<DEV> -C <DEV> status --porcelain'
 - 집합이 비면 "반영할 변경 없음" 출력하고 종료(게이트는 열어둔 채 안내).
 - 목록을 임시 파일 `.claude/.server-test-files` 에 한 줄씩 기록.
 
+> ⚠ **"워킹트리 변경분" ≠ "내 변경분".** 이 레포는 worktree 4개를 동시에 쓰고, 한 워킹트리에
+> **여러 작업의 미커밋 변경이 공존하는 게 정상**이다(세션 시작 시점의 `gitStatus: (clean)`
+> 스냅샷은 세션 중 갱신되지 않으므로 근거로 쓸 수 없다). dev 는 공유 자원이고
+> `backend/app/**` 이 하나라도 끼면 6) 에서 컨테이너 재시작까지 자동 수행된다 —
+> 남의 미완성 코드를 올리고 재시작하면 공유 dev 가 통째로 죽는다(2026-08-03: 다른 세션의
+> `main.py` 가 라우터 4개 import 를 제거한 중간 상태였다).
+> **그래서 오버레이 전에 반드시**: ① `git status --short` 전체 목록을 뽑고 ② **이번 세션에
+> 내가 편집한 파일과 대조**해 ③ 남는 게 있으면 `git diff HEAD -- <file>` 로 성격을 확인한 뒤
+> ④ **내 파일만 목록에 넣는다.** 제외한 파일과 이유는 보고에 반드시 남긴다.
+
 ### 4) 오버레이 — tar-over-ssh (단방향, no delete)
 rsync 의 `-e` 가 띄우는 ssh 가 이 환경에서 키 인증에 실패하는 사례가 있어, **확실히 되는 단일
 ssh 에 tar 를 파이프**한다(경로구조 보존, 목록 외 파일은 건드리지 않음):
@@ -81,16 +91,46 @@ DEPLOYED=
 <3)의 파일 목록 한 줄씩>
 ```
 
-### 6) 컨테이너 반영 확인 (읽기 전용)
+> ⚠ **매니페스트는 오버레이할 때마다 함께 갱신한다.** `DEPLOYED` 는 `.server-test-files` 와
+> **항상 같아야** 한다 — 여기 없는 파일은 `/server-clear` 가 되돌리지 못하고 dev 에 남는다.
+> **한 세션에서 파일을 추가해 다시 올릴 때는 덮어쓰지 말고 이전 `DEPLOYED` 와 합집합**으로
+> 기록한다(2026-08-03: 2차 오버레이 때 갱신을 빠뜨려 `PostProcessPurchaseCut.js` 가
+> 매니페스트에서 누락됐다). 목록을 바꿨으면 tar 대상과 매니페스트를 **같은 단계에서** 쓴다.
+
+### 6) 컨테이너 반영 (필요하면 재시작까지 이 명령이 끝낸다)
 - dev 컨테이너 = `koclo_erp-dev-app`. (해석 시 `docker ps --format '{{.Names}}' | grep koclo_erp-dev`.)
-- 실측 마운트: `frontend` `backend/app` `backend/scripts` `configs` 모두 **bind-mount(ro)** →
-  **프론트(js/html) 변경은 즉시 반영, 재시작 불필요**. 게시 포트는 없음(리버스 프록시 경유).
-- 백엔드(.py) 변경이 포함됐고 uvicorn reload 가 아니면 반영이 안 될 수 있다 → 그 경우
-  **컨테이너 restart 가 필요할 수 있음**을 1줄 안내하고, 재시작은 **사용자 승인 후에만**
-  (`docker restart koclo_erp-dev-app`) 수행한다(임의 재시작 금지).
+- 실측 마운트: `frontend` `backend/app` `backend/scripts` `configs` 모두 **bind-mount(ro)**.
+  반영 방식이 경로마다 다르니 **반영 파일 목록으로 판단**한다:
+
+  | 경로 | 반영 | 재시작 |
+  |---|---|---|
+  | `frontend/**` (js·html·css) | 즉시 | 불필요 |
+  | `backend/scripts/**` | 즉시 (`docker exec python3 …` 가 매번 새 프로세스) | 불필요 |
+  | `configs/**` | 즉시(읽는 시점에 로드) | 불필요 |
+  | **`backend/app/**`** (FastAPI) | uvicorn 이 기동 시 1회 import | **필요** |
+
+- **`backend/app/` 하위 파일이 반영 목록에 하나라도 있으면 재시작을 수행한다.**
+  ```
+  ssh … 'sudo -n /usr/local/bin/docker restart koclo_erp-dev-app'
+  ```
+  `/server-test` 실행 자체가 "dev 에 반영해 확인하라"는 승인이므로 **재시작을 따로 다시 묻지 않는다.**
+  재시작한 사실과 대상 컨테이너는 보고에 명시한다. (`backend/app/` 변경이 없으면 재시작하지 않는다 —
+  불필요한 재시작으로 dev 세션을 끊지 않는다.)
+- 재시작이 필요한 이유: dev/prod 모두 uvicorn `--reload` 를 제거했다(2026-07-28, compose 주석 참조).
+  `--reload-dir` 이 cwd 하위면 uvicorn 이 그 값을 버리고 `/app` 전체를 감시하는데, `/app` 은 NAS
+  바인드 마운트라 호스트 공유 inotify 한도(8192)를 고갈시켜 **리로더가 기동 즉시 죽고** 겉보기엔
+  정상인 채 구코드를 서빙했다(2회 발생). 그래서 "붙었지만 안 도는 리로더" 대신 재시작을 정본으로 삼는다.
+- **재시작 후 실제로 새 코드가 떴는지 확인한다** — 재시작 없이(또는 실패한 채) 측정하면 구코드를
+  측정하게 된다. 워커 프로세스 기동 시각이 반영 파일 mtime 보다 나중인지 대조한다:
+  ```
+  docker inspect -f '{{.State.StartedAt}}' koclo_erp-dev-app   # UTC. KST 는 +9h
+  docker exec koclo_erp-dev-app stat -c '%y %n' /app/app/<반영파일>
+  ```
 
 ## 보고
 - 반영한 파일 수/목록, dev 경로/브랜치, (있으면) PRE_DIRTY 경고를 요약한다.
+- **재시작 여부**를 명시한다 — 했으면 대상 컨테이너와 기동 시각, 안 했으면 `backend/app/` 변경이
+  없어 불필요했다는 사실. (재시작했는데 새 코드가 안 떴으면 그것도 그대로 보고한다.)
 - **git add/commit/push 안 함 · prod 미반영**을 명시한다.
 - 확인 끝나면 **`/server-clear`** 로 원복하라고 안내한다.
 

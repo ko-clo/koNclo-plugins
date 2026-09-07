@@ -7,7 +7,7 @@ NAS(testerp-app 컨테이너)에서 **수동 재생성**한다. 엔진은 NAS에
 `/volume1/docker/testerp/backend/scripts/nas_manual_order.sh`(→ `manual_order_run.py`,
 통합주문 경로를 `batch/integrated_order/{date}` 언더스코어로 고정한 미송 정본판).
 
-산출: `/volume1/자동주문/cache/주문장_업로드_new/주문장_{date}/` (컨테이너 `/app/order_upload`).
+산출: `/volume1/자동주문/cache/주문장_업로드/주문장_{date}/` (컨테이너 `/app/order_upload`).
 
 ## 인자 파싱
 - 첫 토큰 = **기준일 YYYYMMDD**(필수). 없거나 형식이 틀리면 사용법만 안내하고 중단.
@@ -46,7 +46,7 @@ NAS(testerp-app 컨테이너)에서 **수동 재생성**한다. 엔진은 NAS에
 
 ## 검증 후 보고
 - 결과 폴더 xls 개수 확인(읽기 전용):
-  `ls /Volumes/자동주문/cache/주문장_업로드_new/주문장_{date}/*.xls | wc -l` → **8매장**인지.
+  `ls /Volumes/자동주문/cache/주문장_업로드/주문장_{date}/*.xls | wc -l` → **8매장**인지.
 - 미송 신규행이 0이면 사전 점검(컬럼 밀림)·사입흐름 과다도착을 의심해 원인을 한 줄로 보고.
 - 끝나면 추가 NAS 작업이 없으면 `/nas off` 로 잠그도록 안내.
 

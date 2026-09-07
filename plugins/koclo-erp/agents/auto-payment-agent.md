@@ -81,6 +81,7 @@ model: opus
 - **DB 조회**: SSH → `docker exec testerp-db psql -U testerp -d testerp -c "..."`
 - **파일 전송**: SSH base64 chunks → `printf "..." > /tmp/.tmp` → `base64 -d > /target/path`
 - **컨테이너 실행**: `docker exec testerp-app python3 /app/scripts/...`
-- **자동 reload**: payment_router.py 수정 시 uvicorn --reload 자동 감지 (1~3초 대기)
+- **재시작 필수**: `--reload` 는 dev/prod 모두 제거됐다(2026-07-28). payment_router.py 등 .py 를
+  고치면 `docker restart <컨테이너>` 없이는 반영되지 않는다 — 재시작은 사용자 승인 후에만.
 - **API 호출**: `urllib.request` 또는 `curl --connect-timeout 15 --max-time 30`
 - **한글 URL 파라미터**: `urllib.parse.urlencode()` 필수 (curl --data-urlencode 안 됨)
