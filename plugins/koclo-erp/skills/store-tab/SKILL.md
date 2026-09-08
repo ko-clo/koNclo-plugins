@@ -160,6 +160,7 @@ id 는 **양쪽이 정확히 같아야** 한다(`store-<name>`). 백엔드에 �
 | 태그매치 | (없음 — 매장 전용으로 신설된 탭) | `/tag-match` | 운영 중 (이 스킬 이전에 생성, `SubTabLayout` 경유) |
 | 매장 대시보드 | (허브 — 원본 없음) | `/store` | 오늘 할 일 리스트. 샘플반납만 실데이터, 반품·이고·깔교·태그매치는 `준비중` 행 |
 | 샘플반납 | 샘플반납 `/sample-return` | `/store/sample-return` | 구현 완료·**dev 미검증**. 범위=본사 chrome 만 제거(매장 선택 아래 원본 그대로). 진입은 할 일 리스트 경유 |
+| 재고조사 | MD 내부관리 > 재고 점검 `/md-inventory` 의 '조사 리스트' 섹션 | `/store/inventory-survey` | 구현 완료·**dev 미검증**. 범위="리스트만"(파라미터 조절·전매장 요약·실사 집계·다운로드 제외). 행 단위 체크가 완료이고 할일 집계에 들어간다. 저장은 `store_task_product_checks` 에 `task_type='inventory-survey'` — **DDL 없음**. 데스크톱+모바일 |
 
 > 탭 정본은 `frontend/js/navTabs.js` `STORE_TABS` 다. 위 표와 어긋나면 **정본이 옳다.**
 
