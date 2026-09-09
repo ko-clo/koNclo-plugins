@@ -135,6 +135,40 @@ def _as_tool(function):
     return wrapper
 
 
+def _read_only_annotations(title: str):
+    """DB 를 읽기만 하는 도구임을 호스트에 알린다.
+
+    호스트(Claude 데스크톱 앱 등)는 이 힌트를 보고 승인 절차를 얼마나 걸지 정한다.
+    계정 자체가 읽기전용이고 guard 가 SELECT 만 통과시키므로 사실과 일치한다.
+    """
+    from mcp.types import ToolAnnotations
+
+    return ToolAnnotations(
+        title=title,
+        readOnlyHint=True,       # 어떤 데이터도 바꾸지 않는다
+        destructiveHint=False,   # 지우거나 덮어쓰지 않는다
+        idempotentHint=True,     # 같은 요청을 반복해도 결과가 같다
+        openWorldHint=False,     # 정해진 DB 한 곳만 본다
+    )
+
+
+def _file_writing_annotations(title: str):
+    """DB 는 읽기만 하지만 **로컬에 파일을 쓴다**.
+
+    readOnlyHint 를 참으로 두면 호스트가 파일 덮어쓰기를 조용히 승인할 수 있으므로
+    거짓으로 둔다 — 힌트는 사실대로 적어야 의미가 있다.
+    """
+    from mcp.types import ToolAnnotations
+
+    return ToolAnnotations(
+        title=title,
+        readOnlyHint=False,      # 저장 폴더에 CSV 를 만든다
+        destructiveHint=False,   # 같은 이름이 있으면 덮어쓰지만 DB 는 건드리지 않는다
+        idempotentHint=True,
+        openWorldHint=False,
+    )
+
+
 def build_server():
     """MCP 서버 인스턴스. 도구 스키마는 타입힌트와 설명문에서 자동 생성된다."""
     from mcp.server.mcpserver import MCPServer
@@ -144,11 +178,13 @@ def build_server():
     server.tool(
         name="check_connection",
         description="DB 에 연결되는지 확인한다. 설정 직후나 오류 진단에 쓴다.",
+        annotations=_read_only_annotations("연결 확인"),
     )(_as_tool(run_check_connection))
 
     server.tool(
         name="list_tables",
         description="조회할 수 있는 표(테이블) 목록을 돌려준다.",
+        annotations=_read_only_annotations("표 목록"),
     )(_as_tool(run_list_tables))
 
     server.tool(
@@ -157,6 +193,7 @@ def build_server():
             "표 하나의 항목(컬럼) 구조를 돌려준다. "
             "컬럼 이름을 추측하지 말고 반드시 이 도구로 먼저 확인한다."
         ),
+        annotations=_read_only_annotations("표 구조 보기"),
     )(_as_tool(run_describe_table))
 
     server.tool(
@@ -165,6 +202,7 @@ def build_server():
             "조회(SELECT 또는 WITH)를 실행하고 결과를 표로 돌려준다. "
             f"30초·{guard.MAX_ROWS}행 상한이 걸려 있고 데이터 변경은 불가능하다."
         ),
+        annotations=_read_only_annotations("조회 실행"),
     )(_as_tool(run_query))
 
     server.tool(
@@ -173,6 +211,7 @@ def build_server():
             "조회 결과를 CSV 파일로 저장한다(엑셀에서 바로 열림). "
             "사용자가 '엑셀로 저장해줘' 라고 하면 이 도구를 쓴다."
         ),
+        annotations=_file_writing_annotations("엑셀(CSV)로 저장"),
     )(_as_tool(run_export))
 
     return server
