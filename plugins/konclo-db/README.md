@@ -51,12 +51,23 @@ NAS 는 koclo-vm 의 실시간 복제본이 아니라 **자체 배치로 채워�
 
 ## 번들 만들기 (배포 담당자용)
 
+저장소 루트에서:
+
 ```bash
-npx @anthropic-ai/mcpb pack plugins/konclo-db konclo-db.mcpb
+npm run build
 ```
 
-`.mcpbignore` 가 플러그인 전용 자산과 빌드 부산물을 걸러 낸다.
-패킹 전 `npx @anthropic-ai/mcpb validate plugins/konclo-db/manifest.json` 으로 확인한다.
+`dist/konclo-db-<버전>.mcpb` 가 만들어진다. 버전은 `manifest.json` 에서 읽으므로
+파일 이름과 내용물의 버전이 어긋나지 않는다. `npm install` 은 필요 없다.
+
+- 매니페스트만 확인하려면 `npm run validate`
+- `.mcpbignore` 가 플러그인 전용 자산(`skills/`·`commands/`·`.claude-plugin/`)과
+  빌드 부산물을 걸러 낸다
+- 만들어진 `.mcpb` 는 저장소에 넣지 않는다 — 빌드 산출물이고 소스에서 다시 만들면 된다
+
+**버전을 올릴 때는 6곳을 함께 고친다** — 어긋나면 어느 파일이 최신인지 알 수 없다:
+`manifest.json` · `.claude-plugin/plugin.json` · `.codex-plugin/plugin.json` ·
+`pyproject.toml` · `konclo_db/__init__.py` · 루트 `.claude-plugin/marketplace.json`
 
 ---
 

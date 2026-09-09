@@ -9,3 +9,7 @@
 .env
 .env.*
 secrets/
+
+# 빌드 산출물 — 소스에서 npm run build 로 언제든 다시 만든다
+dist/
+node_modules/

@@ -1,0 +1,9 @@
+{
+  "name": "koclo-team-plugins",
+  "private": true,
+  "description": "KOCLO 팀 플러그인 마켓플레이스 — 데스크톱 확장(.mcpb) 빌드 도구",
+  "scripts": {
+    "build": "node scripts/build-mcpb.mjs",
+    "validate": "npx -y @anthropic-ai/mcpb@2.1.2 validate plugins/konclo-db/manifest.json"
+  }
+}
