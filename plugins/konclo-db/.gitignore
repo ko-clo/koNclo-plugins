@@ -1,0 +1,12 @@
+# pip 빌드 부산물 — 소스만 저장소에 둔다
+build/
+dist/
+*.egg-info/
+__pycache__/
+*.pyc
+
+# 접속정보는 사용자 홈(~/.koandclo/konclo-db.env)에만 둔다. 저장소에 절대 넣지 않는다.
+*.env
+
+# OMC 하네스가 작업 디렉터리에 쓰는 세션 상태
+.omc/
