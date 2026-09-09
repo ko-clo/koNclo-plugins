@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "konclo-db"
+version = "0.1.0"
+description = "KONCLO 기획팀 읽기전용 DB 조회 통로 (MCP 서버)"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp>=2.0",
+    "psycopg2-binary>=2.9",
+]
+
+[[project.authors]]
+name = "KOCLO ERP Team"
+
+# 콘솔 스크립트로 설치해 OS 별 파이썬 실행기 차이(python / python3 / py)를 없앤다.
+# pip 이 Windows 에는 .exe 심, macOS/Linux 에는 실행 스크립트를 PATH 에 만들어 준다.
+[project.scripts]
+konclo-db-server = "konclo_db.server:main"
+konclo-db-setup = "konclo_db.setup:main"
+
+[tool.setuptools]
+packages = ["konclo_db"]

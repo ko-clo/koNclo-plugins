@@ -1,0 +1,11 @@
+{
+  "name": "konclo-db",
+  "version": "0.1.0",
+  "description": "KONCLO 기획팀 DB 조회 — 설치 후 DB 이름·아이디·비밀번호만 입력하면 자동 연결되는 읽기전용 조회 통로.",
+  "author": {
+    "name": "KOCLO ERP Team"
+  },
+  "skills": "./skills/",
+  "commands": "./commands/",
+  "mcpServers": "./.mcp.json"
+}

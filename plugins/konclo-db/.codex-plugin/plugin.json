@@ -1,0 +1,27 @@
+{
+  "name": "konclo-db",
+  "version": "0.1.0",
+  "description": "KONCLO 기획팀 DB 조회 — 설치 후 DB 이름·아이디·비밀번호만 입력하면 자동 연결되는 읽기전용 조회 통로.",
+  "author": {
+    "name": "KOCLO ERP Team"
+  },
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "KONCLO DB 조회",
+    "shortDescription": "한국어로 물어보면 회사 DB 를 조회해 표로 보여 줍니다.",
+    "longDescription": "기획팀용 읽기전용 DB 조회 도구입니다. 설치 후 DB 이름·아이디·비밀번호를 한 번만 입력하면 이후 모든 대화에서 자동으로 연결됩니다. 조회(SELECT)만 가능해 데이터가 바뀌거나 지워질 수 없습니다.",
+    "developerName": "KOCLO ERP Team",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive"
+    ],
+    "defaultPrompt": [
+      "DB 연결 설정해줘.",
+      "이번 달 매장별 매출 보여줘.",
+      "지난달에 제일 많이 팔린 상품 20개 뽑아줘.",
+      "이거 엑셀로 저장해줘."
+    ],
+    "brandColor": "#17324D"
+  }
+}

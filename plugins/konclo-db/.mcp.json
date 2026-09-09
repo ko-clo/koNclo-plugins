@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "konclo-db": {
+      "command": "konclo-db-server",
+      "args": []
+    }
+  }
+}

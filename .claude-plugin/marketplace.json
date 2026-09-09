@@ -14,7 +14,32 @@
       },
       "source": "./plugins/koclo-erp",
       "category": "development",
-      "tags": ["koclo", "erp", "development", "safety", "ui", "verification"]
+      "tags": [
+        "koclo",
+        "erp",
+        "development",
+        "safety",
+        "ui",
+        "verification"
+      ]
+    },
+    {
+      "name": "konclo-db",
+      "description": "KONCLO 기획팀 DB 조회 — 설치 후 DB 이름·아이디·비밀번호만 입력하면 자동 연결되는 읽기전용 조회 통로.",
+      "version": "0.1.0",
+      "author": {
+        "name": "KOCLO ERP Team"
+      },
+      "source": "./plugins/konclo-db",
+      "category": "productivity",
+      "tags": [
+        "koclo",
+        "konclo",
+        "db",
+        "query",
+        "planning",
+        "readonly"
+      ]
     }
   ]
 }
