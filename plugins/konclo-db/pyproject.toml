@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "konclo-db"
-version = "0.1.0"
+version = "0.2.0"
 description = "KONCLO 기획팀 읽기전용 DB 조회 통로 (MCP 서버)"
 requires-python = ">=3.10"
 dependencies = [

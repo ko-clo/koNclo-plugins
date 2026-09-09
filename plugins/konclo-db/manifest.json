@@ -3,13 +3,20 @@
   "manifest_version": "0.4",
   "name": "konclo-db",
   "display_name": "KONCLO DB 조회",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "한국어로 물어보면 회사 DB 를 조회해 표로 보여 줍니다. 조회만 가능해 데이터가 바뀌거나 지워질 수 없습니다.",
   "long_description": "KO&CLO 기획팀용 읽기전용 DB 조회 도구입니다. 설치 후 DB 이름·아이디·비밀번호를 한 번만 입력하면 이후 모든 대화에서 자동으로 연결됩니다.\n\n\"이번 달 매장별 매출 보여줘\", \"지난달에 제일 많이 팔린 상품 20개 뽑아줘\", \"삼산이랑 서면 매출 비교해줘\", \"이거 엑셀로 저장해줘\" 처럼 편하게 물어보시면 됩니다.\n\n조회(SELECT)만 실행할 수 있고 30초·5,000행 상한이 걸려 있어 서버에 부담을 주지 않습니다.",
   "author": {
     "name": "KOCLO ERP Team"
   },
-  "keywords": ["koclo", "konclo", "database", "postgres", "readonly", "planning"],
+  "keywords": [
+    "koclo",
+    "konclo",
+    "database",
+    "postgres",
+    "readonly",
+    "planning"
+  ],
   "license": "UNLICENSED",
   "server": {
     "type": "uv",
@@ -74,7 +81,10 @@
     }
   ],
   "compatibility": {
-    "platforms": ["darwin", "win32"],
+    "platforms": [
+      "darwin",
+      "win32"
+    ],
     "runtimes": {
       "python": ">=3.10"
     }
