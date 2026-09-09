@@ -7,4 +7,4 @@ db      읽기전용 실행
 render  결과를 사람이 읽는 형태로
 server  Claude / Codex 에 MCP 도구로 노출
 """
-__version__ = "0.1.0"
+__version__ = "0.2.0"
