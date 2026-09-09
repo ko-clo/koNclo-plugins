@@ -18,6 +18,50 @@ NAS 는 koclo-vm 의 실시간 복제본이 아니라 **자체 배치로 채워�
 접속처를 바꿔야 할 이유가 생기면 `konclo_db/config.py` 를 임의로 고치지 말고
 **먼저 확인을 받는다.**
 
+## 어느 화면을 쓰느냐에 따라 설치 방법이 다르다
+
+| 사용 화면 | 설치물 | 설치 방법 |
+|---|---|---|
+| **Claude 데스크톱 앱의 채팅** (기획팀) | `konclo-db-<버전>.mcpb` | 파일 더블클릭 → 칸 3개 입력 |
+| Claude Code · Codex (개발팀) | 마켓플레이스 플러그인 | `/plugin marketplace add` 후 설치 |
+
+같은 폴더 하나로 둘 다 만든다 — 코드(`konclo_db/`)와 `pyproject.toml` 을 공유하고,
+`manifest.json` 은 데스크톱 확장이, `.claude-plugin/`·`skills/`·`commands/` 는 플러그인이 쓴다.
+
+---
+
+# A. 기획팀 — Claude 데스크톱 앱
+
+## 설치 (2단계)
+
+1. **`konclo-db-<버전>.mcpb` 파일을 더블클릭**한다.
+   (또는 Claude 데스크톱 앱 → 설정 → 확장 → 파일 선택)
+2. 설치 화면에 뜨는 칸 **3개**를 채운다 — DB 이름 · 아이디 · 비밀번호.
+   개발팀에서 받은 값을 그대로 넣으면 된다.
+
+끝이다. 파이썬 설치도, 명령 입력도, 접속정보 파일 만들기도 없다.
+필요한 파이썬과 부품은 앱이 알아서 준비한다(`server.type: "uv"`).
+
+**비밀번호는 이 PC 의 보안 저장소(키체인 / 자격증명 관리자)에 암호화 저장된다.**
+파일로 남지 않고, 번들 안에도 들어 있지 않다.
+
+## 접속정보를 바꾸려면
+
+설정 → 확장 → **KONCLO DB 조회** → 값 수정. 다시 설치할 필요 없다.
+
+## 번들 만들기 (배포 담당자용)
+
+```bash
+npx @anthropic-ai/mcpb pack plugins/konclo-db konclo-db.mcpb
+```
+
+`.mcpbignore` 가 플러그인 전용 자산과 빌드 부산물을 걸러 낸다.
+패킹 전 `npx @anthropic-ai/mcpb validate plugins/konclo-db/manifest.json` 으로 확인한다.
+
+---
+
+# B. 개발팀 — Claude Code · Codex
+
 ## 설치 (기획팀용 — 한 번만, 3단계)
 
 > 사용자가 직접 명령을 칠 일은 없다. 2단계에서 Claude / Codex 가 알아서 설치까지 해 준다.

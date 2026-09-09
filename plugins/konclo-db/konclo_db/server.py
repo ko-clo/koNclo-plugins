@@ -23,12 +23,33 @@ SERVER_INSTRUCTIONS = (
 )
 
 
-def _resolve_export_directory() -> str:
-    """저장 폴더 — 바탕화면이 있으면 거기, 없으면 홈 아래."""
+def _find_desktop_directory() -> str:
+    """바탕화면 폴더를 찾는다. 못 찾으면 홈 폴더를 돌려준다.
+
+    한국어 Windows 는 바탕화면 폴더 이름이 'Desktop' 이 아니고(`바탕 화면`),
+    회사 PC 는 OneDrive 로 리디렉션돼 있는 경우가 흔하다. 'Desktop' 하나만
+    보면 저장 파일이 홈 폴더로 떨어져 사용자가 찾지 못한다.
+    """
     home = os.path.expanduser("~")
-    desktop = os.path.join(home, "Desktop")
-    base = desktop if os.path.isdir(desktop) else home
-    return os.path.join(base, EXPORT_DIRNAME)
+    onedrive = os.environ.get("OneDrive") or os.environ.get("ONEDRIVE") or ""
+
+    candidates = []
+    for base in (onedrive, home):
+        if not base:
+            continue
+        for folder_name in ("Desktop", "바탕 화면", "바탕화면"):
+            candidates.append(os.path.join(base, folder_name))
+    candidates.append(os.path.join(home, "OneDrive", "Desktop"))
+
+    for candidate in candidates:
+        if os.path.isdir(candidate):
+            return candidate
+    return home
+
+
+def _resolve_export_directory() -> str:
+    """저장 폴더 — 바탕화면 아래 전용 폴더."""
+    return os.path.join(_find_desktop_directory(), EXPORT_DIRNAME)
 
 
 def _safe_export_path(filename: str) -> str:

@@ -26,6 +26,16 @@ CREDENTIALS_PATH_ENV = "KONCLO_DB_ENV"
 
 REQUIRED_KEYS = ("PGDATABASE", "PGUSER", "PGPASSWORD")
 
+# 데스크톱 확장(.mcpb)은 설치 화면에서 받은 값을 환경변수로 넘겨준다.
+# 표준 PG* 이름을 쓰면 사용자 PC 에 이미 있는 값과 섞일 수 있어 접두사를 붙였다.
+ENV_CREDENTIAL_KEYS = {
+    "dbname": "KONCLO_DB_NAME",
+    "user": "KONCLO_DB_USER",
+    "password": "KONCLO_DB_PASSWORD",
+    "host": "KONCLO_DB_HOST",
+    "port": "KONCLO_DB_PORT",
+}
+
 
 class CredentialsError(Exception):
     """접속정보를 읽을 수 없을 때. 메시지는 비개발자가 읽을 수 있어야 한다."""
@@ -57,18 +67,57 @@ def parse_env_text(text: str) -> dict:
     return values
 
 
+def load_credentials_from_env(environment: dict = None) -> dict:
+    """환경변수에서 연결 인자를 만든다. 필수값이 하나라도 없으면 None.
+
+    데스크톱 확장(.mcpb)이 설치 화면 입력값을 이 경로로 넘긴다.
+    """
+    source = environment if environment is not None else os.environ
+
+    dbname = (source.get(ENV_CREDENTIAL_KEYS["dbname"]) or "").strip()
+    user = (source.get(ENV_CREDENTIAL_KEYS["user"]) or "").strip()
+    password = source.get(ENV_CREDENTIAL_KEYS["password"]) or ""
+    if not (dbname and user and password):
+        return None
+
+    port_text = (source.get(ENV_CREDENTIAL_KEYS["port"]) or "").strip()
+    try:
+        port = int(port_text) if port_text else DEFAULT_PORT
+    except ValueError as error:
+        raise CredentialsError(
+            f"포트는 숫자여야 합니다 (지금 값: {port_text!r})"
+        ) from error
+
+    return {
+        "host": (source.get(ENV_CREDENTIAL_KEYS["host"]) or "").strip() or DEFAULT_HOST,
+        "port": port,
+        "dbname": dbname,
+        "user": user,
+        "password": password,
+    }
+
+
 def load_credentials(path: str = None) -> dict:
-    """설정 파일에서 psycopg2 연결 인자를 만든다.
+    """연결 인자를 만든다 — 환경변수가 먼저, 없으면 설정 파일.
+
+    환경변수 경로는 데스크톱 확장(.mcpb), 파일 경로는 Claude Code 플러그인이 쓴다.
 
     Returns: {"host", "port", "dbname", "user", "password"}
-    Raises: CredentialsError — 파일이 없거나 항목이 빠졌거나 형식이 틀렸을 때.
+    Raises: CredentialsError — 어느 쪽에서도 읽지 못했을 때.
     """
+    if path is None:
+        from_environment = load_credentials_from_env()
+        if from_environment is not None:
+            return from_environment
+
     credentials_path = path or resolve_credentials_path()
 
     if not os.path.exists(credentials_path):
         raise CredentialsError(
             "DB 접속정보가 아직 등록되지 않았습니다.\n"
-            "Claude 나 Codex 에게 `DB 연결 설정해줘` 라고 말하거나 "
+            "· Claude 데스크톱 앱: 설정 → 확장 → KONCLO DB 조회 에서 "
+            "DB 이름·아이디·비밀번호를 입력해 주세요.\n"
+            "· Claude Code / Codex: `DB 연결 설정해줘` 라고 말하거나 "
             "`/konclo-db-setup` 을 실행해 주세요."
         )
 

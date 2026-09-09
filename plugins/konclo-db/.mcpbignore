@@ -1,0 +1,25 @@
+# .mcpb 번들에 넣지 않을 것 — Claude Code / Codex 플러그인 전용 자산
+.claude-plugin/
+.codex-plugin/
+.mcp.json
+commands/
+skills/
+README.md
+.gitignore
+.mcpbignore
+
+# 빌드 부산물·가상환경 (uv 타입은 server/lib·venv 를 넣으면 안 된다)
+build/
+dist/
+*.egg-info/
+__pycache__/
+*.pyc
+.venv/
+server/lib/
+server/venv/
+
+# 접속정보는 어떤 경우에도 번들에 들어가지 않는다
+*.env
+
+# OMC 하네스가 작업 디렉터리에 쓰는 세션 상태
+.omc/
