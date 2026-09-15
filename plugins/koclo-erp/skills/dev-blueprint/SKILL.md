@@ -29,6 +29,7 @@ description: KOCLO 프론트백 분리 개발 표준. "dev-blueprint", "blueprin
 | **책임 분리** | 계산(service) / 입출력(router) / 표현(Vue) 3계층 분리. (CLAUDE.md 1·4항) |
 | **컴포넌트 분리** | 탭/섹션 1개 = 컴포넌트 1개. `View`는 **셸**(툴바·탭바·fetch·공유상태)만 담고, 표현은 `widgets/<Feature><Part>.js`로 분리한다. View가 비대해지면(≈300줄+) 반드시 쪼갠다. 한 파일이 여러 탭 렌더를 다 품지 않는다. (CLAUDE.md 4·6항) |
 | **CSS 분리** | 인라인 CSS 지양. 피처 전용 스타일은 `frontend/css/<feature>.css`에 **`.<feature>` 루트로 스코프**해 분리하고(전역 `theme.css` 무충돌), `index.html`에 `?v=` 캐시버스팅 `<link>`로 1회 로드한다. 컴포넌트 템플릿은 클래스명을 쓰고, 인라인 style은 **동적 값**(밴딩 색상 등)만 허용. 선례: `wholesale-golden.css`. |
+| **스타일 정본** | 색·글꼴·모서리는 **§4-7 KO&CLO 스타일 정본**을 따른다. 색은 `var(--koclo-*)`(정의 = `theme.css` `:root`), 글꼴은 **DM Sans · Instrument Serif · JetBrains Mono** 3종만. 토큰에 없는 hex·미로드 글꼴·다크모드·좁은 고정 폭·`position:fixed` 금지. |
 | **커밋** | 명시적 승인 전 `git commit` 금지. |
 
 ## 2. 표준 파일 구조 & 명명
@@ -227,6 +228,94 @@ export default {
   ```
 - **CSS 추출**: 컴포넌트 템플릿에 대량 인라인 style 을 박지 않는다. 피처 CSS 는 `frontend/css/<feature>.css` 로 빼고 **`.<feature>` 루트로 스코프**(전역 무충돌), `index.html` 에 `?v=` link 1줄. 서버 HTML 생성기의 `<style>` 을 이식할 때는 **해당 스코프의 3탭 관련 규칙만 선별**한다(편집탭 등 iframe 잔존 영역 규칙은 남긴다). 동적 값(밴딩 색상 등)만 인라인 허용.
 
+### 4-7. KO&CLO 스타일 정본 — 색·글꼴·컴포넌트 (MUST)
+
+> 아래 값은 **발명한 것이 아니라** `frontend/css/*.css` 22개 파일의 **실사용 빈도에서 추출**했다.
+> 토큰 정의 = `frontend/css/theme.css` 최상단 `:root`. 새 탭은 `var(--koclo-*)` 를 쓴다.
+
+**세 줄 요약** — ① 색은 `var(--koclo-*)`, 새 hex 를 만들지 않는다 ② 글꼴은 **DM Sans · Instrument Serif · JetBrains Mono** 셋뿐 ③ 탭 CSS 는 `.<feature>` 스코프.
+
+#### 색 토큰
+
+| 토큰 | 값 | 용도 | 실사용 |
+|---|---|---|---|
+| `--koclo-ground` | `#FAFAF8` | 페이지 배경(`body` 동일) | 36 |
+| `--koclo-surface` | `#FFFFFF` | 카드·패널 바탕 | — |
+| `--koclo-surface-alt` | `#F0EEEB` | 표 헤더·보조 바탕 | 27 |
+| `--koclo-line` | `#E8E6E3` | 테두리·구분선 | 104 |
+| `--koclo-ink` | `#1A1A1A` | 본문 글자 | 88 |
+| `--koclo-ink-deep` | `#0D0D0D` | 강조 글자 | 26 |
+| `--koclo-muted` | `#9C9A97` | 보조 글자 | 71 |
+| `--koclo-muted-strong` | `#6B6966` | 진한 보조 글자 | 17 |
+| `--koclo-accent` | `#E73121` | 브랜드·주액션 | **121(최다)** |
+| `--koclo-accent-soft` | `#FEF0EF` | 주액션 배경 | 7 |
+| `--koclo-success` | `#2D8A56` | 정상·성공 | 37 |
+| `--koclo-success-soft` | `#EAF5EE` | 성공 배경 | — |
+| `--koclo-warn` | `#E65100` | 주의 | 9 |
+| `--koclo-warn-soft` | `#FFF3E0` | 주의 배경 | 7 |
+| `--koclo-danger` | `#C62828` | 위험·오류 | 45 |
+| `--koclo-danger-soft` | `#FCE4EC` | 위험 배경 | — |
+
+**accent 와 danger 를 구분한다.** `--koclo-accent` 는 브랜드이자 주액션(저장·설치 버튼)이다.
+오류에까지 같은 빨강을 쓰면 **"눌러야 할 것"과 "잘못된 것"이 구분되지 않는다.**
+`--koclo-danger` 값 자체는 여러 탭이 이미 쓰던 색이고, 새로 정한 건 **둘을 나눈다는 규칙 하나**다.
+
+#### 글꼴 — 3종이 전부다
+
+`index.html` 이 로드하는 것만 쓸 수 있다. 넷째를 선언하면 **로드되지 않아 OS 기본 글꼴로 떨어진다.**
+
+| 토큰 | 값 | 용도 |
+|---|---|---|
+| `--koclo-font-sans` | `'DM Sans', sans-serif` | 본문 전부 |
+| `--koclo-font-serif` | `'Instrument Serif', serif` | 페이지 제목·KPI 수치 |
+| `--koclo-font-mono` | `'JetBrains Mono', monospace` | 코드·수치·날짜 |
+
+> **실제 사고**: 디자인 프로세스 탭이 `IBM Plex Sans KR`·`IBM Plex Mono`·`Noto Serif KR` 를
+> **43개 선언**에서 참조했는데 셋 다 미로드라 전부 시스템 글꼴로 렌더됐다.
+> 새 글꼴이 꼭 필요하면 `index.html` 의 `fonts.googleapis.com` 링크에 **먼저 추가**하고 이유를 밝힌다.
+
+크기 주력은 **12 · 11 · 13px**(빈도 62/48/41). 10px 은 표 헤더·캡션, 제목 `.page-title` 20px(serif), KPI 30px(serif).
+모서리는 `--koclo-radius-lg 8px` / `-md 6px` / `-sm 4px`. 버튼 패딩 `7px 14px`, 표 셀 `10px 14px`.
+
+#### 하지 않을 것
+
+- **다크모드를 만들지 않는다.** 앱에 다크 테마가 없다(`theme.css` 의 `prefers-color-scheme` 0건).
+  한 탭만 뒤집히면 그 탭만 튄다 — 실제로 디자인 프로세스 탭이 유일하게 그랬다.
+- 파랑·보라(`#1565C0`·`#6A1B9A`)를 강조색으로 쓰지 않는다. 구 탭 잔재이지 정본이 아니다.
+- 토큰에 없는 hex 를 새로 만들지 않는다. 필요하면 이 표에 먼저 추가한다.
+- **데스크톱 화면이다.** 좁은 고정 폭(`max-width:520px` 류)을 쓰지 않는다(관행 `1600px` 내외 + `margin:0 auto`).
+  `position:fixed` 요소(FAB·하단탭바·바텀시트)는 탭 DOM 밖 전체 뷰포트에 떠서 앱 크롬을 덮는다 — 쓰지 않는다.
+  모바일이 필요하면 데스크톱 뷰를 고치지 말고 전용 뷰를 만든다(`mobile-blueprint`).
+
+#### 공용 컴포넌트 — 새로 만들지 말고 재사용
+
+`theme.css` 에 이미 있다. 같은 것을 탭 CSS 에 다시 정의하지 않는다.
+
+| 클래스 | 정의 |
+|---|---|
+| `.loading-box` + `.spinner` | 로딩 표시(§4-5 — 필수) |
+| `.page-title` | `Instrument Serif` 20px `#1A1A1A` |
+| `.page-body` | `padding:20px 24px; flex:1; overflow-y:auto` |
+| `.view-toolbar` | `padding:8px 24px`, 우측정렬, 흰 바탕, 아래 `1px solid #E8E6E3` |
+| `.tbl` | th `10px` uppercase `#F5F5F3` / td `13px` / `.mono` = JetBrains Mono 12px |
+
+#### 적용 범위
+
+- **신규 탭·새로 쓰는 규칙**: 그대로 따른다.
+- **기존 22개 CSS 의 hex**: 일괄 치환하지 않는다(전 탭 회귀 위험 대비 이득이 적다).
+  그 파일을 어차피 손볼 때 **해당 규칙만** 토큰으로 바꾼다.
+- 토큰 정의는 순수 추가라 **정의만으로는 어떤 화면도 바뀌지 않는다.**
+
+#### 값의 출처 (다시 측정하는 법)
+
+```bash
+cat frontend/css/*.css | grep -o "#[0-9A-Fa-f]\{6\}" | tr 'a-f' 'A-F' | sort | uniq -c | sort -rn
+cat frontend/css/*.css | grep -o "font-family:[^;}]*" | sort | uniq -c | sort -rn
+grep -o "family=[^&\"]*" frontend/index.html
+```
+
+측정 2026-09-09 · `frontend/css/*.css` 22개. 값을 고칠 때는 위를 다시 돌리고 **이 표와 `theme.css` `:root` 를 함께** 고친다.
+
 ## 5. 작업 순서 (Phase)
 
 1. **Phase 1 — 백엔드**: 정본 식별(§3-3) → service(SQL 이식+계산) → router(입력검증 포함) → main.py 등록 → **import 스모크 테스트**(아래) → API JSON을 기존 `<feature>_latest.html` 수치와 **대조 검증**. *운영 DB가 로컬에 없으면(예: NAS 전용) 이 수치대조는 **배포 후로 분리**하고, 그 전엔 SQL 논리동등성으로 대체한다.*
@@ -249,6 +338,7 @@ export default {
 - [ ] 빌드리스 유지 (CDN Vue + ES모듈, 번들러 미도입)
 - [ ] **탭별 컴포넌트 분리**: 각 탭이 독립 `widgets/` 컴포넌트, View 는 셸(탭 렌더 로직 미포함, 비대하지 않음)
 - [ ] **CSS 분리**: 인라인 CSS 최소, 피처 CSS 는 `.<feature>` 스코프 파일로 추출·`index.html` 링크
+- [ ] **스타일 정본 준수(§4-7)**: 색이 `var(--koclo-*)` 범위 안 · 글꼴이 로드된 3종 안 · 다크모드 블록 없음 · 좁은 고정 폭/`position:fixed` 없음 — 확인 명령 `grep -o "#[0-9A-Fa-f]\{6\}" frontend/css/<feature>.css | sort -u` 로 토큰 밖 hex 를 센다
 - [ ] **고유 데이터 로더**: 공유 `build_master_data` 상주 재사용 없이 탭 전용 경량 loader 로 소비 컬럼만 로드(파리티 유지) — 선례 `build_post_process_md_direct`
 - [ ] 콘솔 에러 0, API 예외 처리 존재
 - [ ] 독립 리뷰어 승인 (자기승인 아님)
