@@ -7,14 +7,15 @@ argument-hint: "on [분] | off | status"
 Bash 명령(`100.99.51.88`, `orderhead1@`, `/volume1/`, `testerp-dev-app` 등)이
 PreToolUse 훅을 통과한다.
 
-- **on [분]** (분 생략 시 30):
-  `EXP=$(( $(date +%s) + <분>*60 )); echo "$EXP" > .claude/.nas-unlock`
-  를 실행하고, "✅ NAS 접근 <분>분 허용 (만료 HH:MM)" 를 출력한다.
-- **off**:
-  `rm -f .claude/.nas-unlock` 를 실행하고 "🔒 NAS 접근 잠금" 을 출력한다.
-- **status** 또는 인자 없음:
-  게이트 파일 존재 여부와 만료까지 남은 시간(`.claude/.nas-unlock` 의 epoch − 현재시각)을
-  계산해 출력한다. 없거나 만료면 "🔒 잠김".
+여닫이는 **반드시 `.claude/hooks/gate.sh` 로 한다** — 게이트 파일에 직접 쓰는 길은 하네스가
+차단하므로 사용자가 `/nas on` 을 눌러도 열리지 않는다. `permissions.allow` 에 등록된 진입점은
+이 스크립트뿐이며, 다른 명령과 `&&`·`;` 로 이어붙이면 접두 매칭이 깨져 역시 차단된다.
+
+- **on [분]** (분 생략 시 30, 상한 480): `.claude/hooks/gate.sh nas on <분>`
+- **off**: `.claude/hooks/gate.sh nas off`
+- **status** 또는 인자 없음: `.claude/hooks/gate.sh nas status`
+
+출력 문구는 스크립트가 만든다 — 여기서 따로 지어내지 않는다.
 
 게이트를 연 뒤에도 **CLAUDE.md의 NAS Access Safety Rules** 를 따른다 — 읽기 전용은 자유,
 파일 변경·동기화·서비스/Docker·시스템·Git/배포는 사용자 승인 후에만.

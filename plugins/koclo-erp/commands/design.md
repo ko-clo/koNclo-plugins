@@ -17,11 +17,17 @@ argument-hint: "<작업 요청> | on [분] | off | status"
 게이트가 열린 동안에만 `backend/**`·`frontend/**` 편집이 훅을 통과한다.
 (`/nas on`·`/danger on`·`/testfile on` 과 **같은 의미** — `on` = 한시 허용, `off` = 잠금)
 
-- **on [분]** (분 생략 시 30):
-  `EXP=$(( $(date +%s) + <분>*60 )); printf '%s\nmode=bypass\n' "$EXP" > .claude/.design-unlock`
-  실행 후 `⚠️ 작업 모드 게이트 <분>분 해제 (만료 HH:MM) — 간단·긴급 작업용` 출력.
-- **off**: `rm -f .claude/.design-unlock` 실행 후 `🛑 작업 모드 게이트 잠금` 출력.
-- **status** 또는 인자 없음과 함께 물으면: 파일 존재·남은 시간을 계산해 출력. 없거나 만료면 `🛑 잠김`.
+여닫이는 **반드시 `.claude/hooks/gate.sh` 로 한다.** 게이트 파일에 직접 쓰는
+(`printf ... > .claude/.design-unlock`) 길은 하네스가 "에이전트가 자기 게이트를 여는 행위"로 보고
+차단하며, 그래서 사용자가 `/design on` 을 눌러도 열리지 않는다. `permissions.allow` 에 등록된 것은
+이 스크립트 한 줄뿐이다.
+
+- **on [분]** (분 생략 시 30, 상한 480): `.claude/hooks/gate.sh design on <분>`
+- **off**: `.claude/hooks/gate.sh design off`
+- **status** 또는 인자 없음과 함께 물으면: `.claude/hooks/gate.sh design status`
+
+출력 문구는 스크립트가 만든다 — 여기서 따로 지어내지 않는다.
+다른 명령과 이어붙이지 않는다(`&&`·`;` 로 묶으면 allow 접두 매칭이 깨져 차단된다).
 
 ### 게이트를 여는 것은 사용자만 한다
 

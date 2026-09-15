@@ -185,12 +185,15 @@ description: 기능추가·기능수정·버그해결 작업의 표준 절차. �
 사용자의 **명시 승인**("진행해 / 좋아 / 그렇게 해")을 받은 뒤에만:
 
 ```bash
-EXP=$(( $(date +%s) + 240*60 ))            # 기본 240분 = 한 작업 사이클
-printf '%s\nmode=<모드> approved\n' "$EXP" > .claude/.design-unlock
+.claude/hooks/gate.sh design on 240        # 기본 240분 = 한 작업 사이클
 ```
 
+- 여닫이는 **반드시 `.claude/hooks/gate.sh` 로 한다.** 게이트 파일에 직접 쓰는
+  (`printf ... > .claude/.design-unlock`) 길은 하네스가 "에이전트가 자기 게이트를 여는 행위"로 보고
+  차단한다(정본: `.claude/commands/design.md` §1). 다른 명령과 `&&`·`;` 로 이어붙이지 않는다.
+- 스크립트 호출도 거부되면 우회하지 말고 사용자에게 **`/design on [분]`** 실행을 요청한다.
 - **승인 없이 열지 않는다.** "확인해줘 / 분석해줘" 는 승인이 아니다.
-- 작업이 끝나면 **`rm -f .claude/.design-unlock`** 로 즉시 잠근다(§6 완료 보고 직후).
+- 작업이 끝나면 **`.claude/hooks/gate.sh design off`** 로 즉시 잠근다(§6 완료 보고 직후).
 - 사용자가 `/design on [분]` 으로 직접 연 경우(간단·긴급)에는 이 스킬 절차를 건너뛴 것이므로,
   **최소한 ① 모드 분류 배너 하나는 남기고**(§1) 작업한다.
 

@@ -9,13 +9,15 @@ argument-hint: "on [분] | off | status"
 차단 대상 = `test_*.py` · `*_test.py` · `*_scenarios.py` · `*.test.*` / `*.spec.*` · `tests/` 경로.
 신규 생성분과 **기존 테스트 파일 수정분 모두** 포함한다.
 
-- **on [분]** (분 생략 시 15):
-  `EXP=$(( $(date +%s) + <분>*60 )); echo "$EXP" > .claude/.testfile-unlock`
-  를 실행하고, "⚠️ 테스트 파일 커밋 <분>분 허용 (만료 HH:MM)" 를 출력한다.
-- **off**:
-  `rm -f .claude/.testfile-unlock` 를 실행하고 "🛑 테스트 파일 커밋 잠금" 을 출력한다.
-- **status** 또는 인자 없음:
-  게이트 파일 존재 여부와 남은 시간을 계산해 출력한다. 없거나 만료면 "🛑 잠김".
+여닫이는 **반드시 `.claude/hooks/gate.sh` 로 한다** — 게이트 파일에 직접 쓰는 길은 하네스가
+차단하므로 사용자가 `/testfile on` 을 눌러도 열리지 않는다. `permissions.allow` 에 등록된 진입점은
+이 스크립트뿐이며, 다른 명령과 `&&`·`;` 로 이어붙이면 접두 매칭이 깨져 역시 차단된다.
+
+- **on [분]** (분 생략 시 15, 상한 480): `.claude/hooks/gate.sh testfile on <분>`
+- **off**: `.claude/hooks/gate.sh testfile off`
+- **status** 또는 인자 없음: `.claude/hooks/gate.sh testfile status`
+
+출력 문구는 스크립트가 만든다 — 여기서 따로 지어내지 않는다.
 
 ## 게이트를 여는 것은 사용자만 한다
 
