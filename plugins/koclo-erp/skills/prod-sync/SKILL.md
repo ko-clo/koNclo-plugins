@@ -1,6 +1,6 @@
 ---
 name: prod-sync
-description: NAS prod 운영서버에 직접 반영된(아직 커밋 안 된) 변경분을 로컬 워킹트리로 회수. "prod-sync", "prod 변경 로컬 반영", "운영 수정 가져와", "prod에 직접 고친거 로컬로", "prod 미커밋 반영" 키워드 매칭 시 호출. 정본 절차는 /prod-sync 명령.
+description: Use when NAS prod 운영서버에 직접 반영된(아직 커밋 안 된) 변경분을 로컬 워킹트리로 회수해야 할 때. 트리거 — "prod-sync", "prod 변경 로컬 반영", "운영 수정 가져와", "prod에 직접 고친거 로컬로", "prod 미커밋 반영".
 ---
 
 # prod-sync — 운영서버 미커밋 변경 회수

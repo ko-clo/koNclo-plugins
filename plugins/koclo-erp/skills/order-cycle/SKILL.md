@@ -1,6 +1,6 @@
 ---
 name: order-cycle
-description: TESTERP 주문장 일일 생성 — "주문장 만들어" "오늘 주문장" "auto_order" 키워드 매칭. 명령어 템플릿 + 실패-해결 매핑 + 점검 SQL
+description: Use when TESTERP 주문장을 일일 생성할 때. 트리거 — "주문장 만들어", "오늘 주문장", "auto_order".
 ---
 
 # 주문 사이클 스킬
@@ -9,29 +9,32 @@ description: TESTERP 주문장 일일 생성 — "주문장 만들어" "오늘 �
 
 ## 명령어 템플릿
 
+> DB 접속 문자열은 컨테이너 env `KOCLO_ERP_DB_DSN` 을 상속한다(`docker-compose.yml` 이 주입 — 스크립트가
+> `os.environ["KOCLO_ERP_DB_DSN"]` 로 읽는다). **명령줄·문서에 접속 문자열과 비밀번호를 적지 않는다.**
+
 ### 증분 수동 인입
 ```bash
-docker exec -e APP_BASE=/app -e TESTERP_DB_DSN='host=localhost port=5434 dbname=testerp user=testerp password=testerp2026' testerp-app python3 /app/scripts/ingest_incremental.py
+docker exec -e APP_BASE=/app koclo_erp-app python3 /app/scripts/ingest_incremental.py
 ```
 
 ### 주문장 빌드 + xls 추출
 ```bash
-docker exec -e APP_BASE=/app -e USE_DB=1 -e TESTERP_DB_DSN='host=localhost port=5434 dbname=testerp user=testerp password=testerp2026' testerp-app python3 /app/scripts/auto_order_db.py --date $(date +%Y%m%d)
+docker exec -e APP_BASE=/app -e USE_DB=1 koclo_erp-app python3 /app/scripts/auto_order_db.py --date $(date +%Y%m%d)
 ```
 
 ### 강제 재빌드 (기존 HTML 무시)
 ```bash
-docker exec -e APP_BASE=/app -e USE_DB=1 -e TESTERP_DB_DSN='...' testerp-app python3 /app/scripts/order_v8_2_rebuild_FULL.py --from $(date +%Y-%m-%d) --to $(date +%Y-%m-%d)
+docker exec -e APP_BASE=/app -e USE_DB=1 koclo_erp-app python3 /app/scripts/order_v8_2_rebuild_FULL.py --from $(date +%Y-%m-%d) --to $(date +%Y-%m-%d)
 ```
 
 ## 점검 SQL 3개
 
 ```sql
--- 오늘 매출 8매장
-SELECT store_id, count(*), sum(quantity) FROM sales_daily WHERE txn_date=CURRENT_DATE GROUP BY store_id ORDER BY store_id;
+-- 오늘 매출 8매장 (sales_daily.txn_date 는 varchar 라 date 로 바꿔 비교한다)
+SELECT store_id, count(*), sum(quantity) FROM sales_daily WHERE NULLIF(txn_date::text, '')::date = CURRENT_DATE GROUP BY store_id ORDER BY store_id;
 
 -- 현재고 최신 mtime
-SELECT store_id, max(imported_at) FROM purchase_data GROUP BY store_id;
+SELECT store_id, max(imported_at) FROM inventory_snapshot GROUP BY store_id;  -- 현재고 레지스터(구 purchase_data)
 
 -- 어제 누락주문분
 SELECT count(*), sum(delta) FROM missed_orders WHERE txn_date=CURRENT_DATE-1;

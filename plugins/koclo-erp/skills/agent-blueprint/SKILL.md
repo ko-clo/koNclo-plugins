@@ -1,6 +1,6 @@
 ---
 name: agent-blueprint
-description: 임의의 탭(View)에 대해 "서브탭 단위 작업 시스템"(Skill 라우팅 + 서브탭 전담 Agent + domain/architecture/feedback Memory + /command 메뉴)을 VMD와 동일 구조로 생성하는 메타 스킬. "/agent-blueprint <탭이름>", "탭 에이전트 시스템 만들어", "서브탭 에이전트 구축", "이 탭도 vmd처럼" 등에서 호출. 탭 이름 미입력 시 대상 탭을 먼저 묻고, 파일 생성 전 반드시 plan을 제시해 승인받는다.
+description: Use when 임의의 탭(View)에 서브탭 단위 작업 시스템(Skill 라우팅 + 서브탭 전담 Agent + domain/architecture/feedback Memory + /command 메뉴)을 만들 때. 트리거 — "/agent-blueprint <탭이름>", "탭 에이전트 시스템 만들어", "서브탭 에이전트 구축", "이 탭도 vmd처럼".
 ---
 
 # agent-blueprint — 탭 작업 시스템 생성기
@@ -63,7 +63,7 @@ VMD 산출물을 **템플릿으로 그대로 따라** 작성한다(아래 §컨�
 
 ## 컨벤션 (VMD 정본 모방)
 
-**스킬** `skills/<tab>/SKILL.md`: frontmatter `name:<tab>` + 트리거 키워드 description. 본문 = ⓪서브탭↔에이전트↔파일 표 ①작업흐름(식별→위임→병렬→통합→회귀) ②공유 자산 위임 규칙 ③회귀검증(`dev-blueprint` §6 재사용) ④작업 전 필독(domain/service 메모리).
+**스킬** `skills/<tab>/SKILL.md`: frontmatter `name:<tab>` + 트리거 키워드 description(`Use when <탭> 탭/서브탭의 수정·조회·기능추가 요청을 받았을 때. 트리거 — "…", "…"` + 있으면 괄호 안 경계 안내. 스킬이 **무엇을 하는지**(위임·회귀 검증 요약)는 적지 않는다 — 적으면 본문을 읽지 않고 그 요약대로 움직인다). 본문 = ⓪서브탭↔에이전트↔파일 표 ①작업흐름(식별→위임→병렬→통합→회귀) ②공유 자산 위임 규칙 ③회귀검증(`dev-blueprint` §6 재사용) ④작업 전 필독(domain/service 메모리).
 
 **에이전트** `agents/<tab>-<subtab>-agent.md`: frontmatter = `name` + `description`만(최소). 본문 = 담당 범위·작업 전 필독(kernel·domain·architecture·dev-blueprint)·담당 파일(프론트/API/service/DB)·공유 자산 변경 시 메인 보고·피드백 누적·보고 형식.
 
@@ -79,7 +79,6 @@ VMD 산출물을 **템플릿으로 그대로 따라** 작성한다(아래 §컨�
 3. **트리거 충돌** — 기존 에이전트와 키워드가 겹치면 경계 규칙을 어떻게 명시할지.
 
 ## 금지
-- **plan 제시·승인 전 파일 생성** (이 스킬의 1순위 규칙).
-- 운영 코드/DB 수정, 미승인 커밋.
+앞 절에 이미 적힌 금지는 되풀이하지 않는다(§2 · §3 · 도입부). 그중 **plan 제시·승인 전 파일 생성 금지(§2)가 이 스킬의 1순위 규칙**이다.
+
 - VMD와 다른 임의 구조 신설(정본 모방 — 벗어나려면 plan에 사유 명시).
-- `dev-blueprint`/`agent_kernel.md` 내용 중복 서술(참조만).
