@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: KOCLO 브랜치 코드리뷰 라우팅. "코드리뷰", "코드 리뷰", "/pr-review", "이 브랜치 리뷰", "PR 리뷰", "리뷰해줘", "변경분 검사", "머지 전 점검" 등 특정 브랜치/PR의 수정·추가 로직을 정밀검사하는 요청 시 호출. merge-base diff를 worktree로 격리해 4개 차원(의도·품질·계층·데이터) 전담 에이전트로 병렬 리뷰하고 통합 리포트를 생성한다. (빌트인 code-review 와 별개 — 이 스킬은 KOCLO 전용 브랜치 리뷰 절차서)
+description: Use when 특정 브랜치/PR의 수정·추가 로직을 정밀검사해야 할 때. 트리거 — "코드리뷰", "코드 리뷰", "/pr-review", "이 브랜치 리뷰", "PR 리뷰", "리뷰해줘", "변경분 검사", "머지 전 점검". (빌트인 code-review 와 별개 — 이 스킬은 KOCLO 전용 브랜치 리뷰 절차서)
 ---
 
 # KOCLO 코드리뷰 — 라우팅 스킬
@@ -95,7 +95,3 @@ git worktree prune                            # 잔여 정리
 - `CLAUDE.md` — 개발 규칙(이름·예외·모듈화·DDL 정규화 기준의 근거)
 - `dev-blueprint` 스킬 — 3계층(service/router/Vue) 표준 (계층 정합 판단 기준)
 - 해당 탭의 `.claude/memory/service/*-architecture.md` / `domain/*.md` — 비즈니스 의도 대조용
-
-## 7. koNclo-plugins 동기화
-
-- 이 스킬·커맨드·에이전트 파일은 PostToolUse `sync-plugins.sh` 훅이 `../koNclo-plugins/plugins/koclo-erp/` 로 자동 미러(working tree 복사). plugins 측 커밋은 별도 수행(자동 안 함).

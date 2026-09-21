@@ -1,6 +1,6 @@
 ---
 name: store-tab
-description: 본사용 기존 탭의 '매장(현장)용 간소화 버전'을 만들어 [매장관리] 그룹에 추가하거나 수정하는 메타 스킬. "매장관리탭 생성", "매장관리탭 수정", "/store-tab", "매장용 간단 버전", "현장에서 쓸 탭", "매장 화면 간소화" 등에서 호출. 원본 탭 미입력 시 먼저 묻고, 파일 생성 전 반드시 plan 을 제시해 승인받는다.
+description: Use when 본사용 기존 탭의 매장(현장)용 간소화 버전을 [매장관리] 그룹에 새로 만들거나 기존 매장탭을 고칠 때. 트리거 — "매장관리탭 생성", "매장관리탭 수정", "/store-tab", "매장용 간단 버전", "현장에서 쓸 탭", "매장 화면 간소화".
 ---
 
 # store-tab — 매장(현장)용 간소화 탭 생성기
@@ -9,6 +9,14 @@ description: 본사용 기존 탭의 '매장(현장)용 간소화 버전'을 만
 > 별도 뷰를 조립해 `[매장관리]` 그룹에 붙인다. 데이터·판정·API 는 전부 원본과 공유한다.
 > 탭 개발 표준은 `dev-blueprint`(§1 불변규칙·§4 UX·§6 검증게이트를 그대로 상속), 병행 뷰 선례는 `mobile-blueprint`.
 > 원본 탭의 판정 규칙을 바꾸는 것은 **이 스킬의 범위 밖** — 그 탭 전담 에이전트 소관이다.
+
+## 읽을 파일
+
+절 번호는 `/store-tab` 명령이 인용하는 고정 ID 다. 경로 기준은 `.claude/skills/store-tab/` 다.
+
+| 절 | 파일 | 읽는 시점 |
+|---|---|---|
+| §7 현황 표 | `references/status.md` | 4-0 에서 기존 매장탭 유무를 확인할 때 · 4-5 마무리에서 행을 추가할 때 |
 
 ## 0. 탭 원칙 (이 스킬의 존재 이유 — 모든 결정의 상위 기준)
 
@@ -60,18 +68,29 @@ plan 에 **원본 대비 무엇이 줄었는지**(서브탭·컬럼·버튼 수)
 frontend/
 ├── js/views/store/<Tab>StoreView.js   ← 신규. 표현만. 판정·API 는 원본과 공유(import)
 ├── js/views/<Tab>View.js              ← 무수정 (원본은 한 줄도 건드리지 않는다)
-├── js/navTabs.js                      ← 수정: STORE_TABS 에 1행 추가
+├── js/navTabs.js                      ← §3-1 (나) 사이드바 탭일 때만 수정: STORE_TABS 에 1행 추가
 ├── js/app.js                          ← 수정: 라우트 1개 추가 (SubTabLayout 미사용 — §3-2)
 ├── css/store/<tab>.css                ← 필요 시. `.st-<tab>` 루트 스코프
 └── index.html                         ← css 추가한 경우만 `?v=` link 1줄
 
-backend/app/services/role_permission_service.py  ← 수정: TAB_GROUPS 의 "store" 그룹에 1행 추가
-.claude/skills/store-tab/SKILL.md                ← 수정: §7 현황 표에 행 추가
+backend/app/services/role_permission_service.py  ← §3-1 (나) 사이드바 탭일 때만 수정: TAB_GROUPS 의 "store" 그룹에 1행 추가
+.claude/skills/store-tab/references/status.md   ← 수정: §7 현황 표에 행 추가
 ```
 
 **위젯·`api.js`·판정 모듈은 원본 것을 그대로 import 한다. 매장탭 전용 API·전용 판정 신설 금지.**
 
-### 3-1. 등록은 반드시 2곳 (한쪽만 하면 탭이 안 보인다)
+### 3-1. 등록 — 업무 화면은 `store-dashboard` 를 공유하고, 사이드바 탭만 2곳에 등록한다
+
+매장탭은 두 종류이고 등록 방식이 다르다. **plan 에서 어느 쪽인지 먼저 정한다.**
+
+**(가) 할 일 리스트에서 들어가는 업무 화면 — 지금까지 만든 매장탭은 전부 이쪽이다.**
+`STORE_TABS` 에도 `TAB_GROUPS` 에도 **등록하지 않는다.** 매장 계정의 `allowed_tabs` 는 `store-dashboard`
+하나뿐이라(`store_user_context.get_store_allowed_tabs`) 새 id 를 만들면 매장 계정에서 라우트가 튕긴다.
+라우트의 `meta.nav` 를 `'store-dashboard'` 로 두고(§3-2), 진입은 할 일 리스트(`StoreTaskListView.js` ·
+모바일 `StoreTaskListMobile.js`)의 업무 행 `route` 로 건다.
+행 단위 체크를 저장하는 업무면 `store_task_service.ALLOWED_TASK_TYPES` · `TASK_TYPE_LABELS` 에 `task_type` 을 넣는다.
+
+**(나) 사이드바에 따로 보이는 탭 — 반드시 2곳에 등록한다(한쪽만 하면 탭이 안 보인다).**
 
 | 곳 | 파일 | 추가 내용 |
 |---|---|---|
@@ -79,12 +98,13 @@ backend/app/services/role_permission_service.py  ← 수정: TAB_GROUPS 의 "sto
 | 백엔드 | `backend/app/services/role_permission_service.py` `TAB_GROUPS` → `id: "store"` | `{"id": "store-<name>", "label": "…"}` |
 
 id 는 **양쪽이 정확히 같아야** 한다(`store-<name>`). 백엔드에 없으면 `allowed_tabs` 에서 빠져 라우트가 튕긴다.
+매장 계정이 실제로 들어가려면 `store_user_context.get_store_allowed_tabs` 에도 그 id 가 있어야 한다.
 
 ### 3-2. 라우트는 `SubTabLayout` 없이 등록한다 (E1·E2 를 구조로 차단)
 
 ```js
-// frontend/js/app.js — 매장관리 그룹
-{ path: '/store/<name>', component: <Tab>StoreView, meta: { nav: 'store-<name>' } },
+// frontend/js/app.js — 매장관리 그룹. nav 는 §3-1 (가)면 'store-dashboard', (나)면 'store-<name>'
+{ path: '/store/<name>', component: <Tab>StoreView, meta: { nav: 'store-dashboard' } },
 ```
 
 `SubTabLayout` 으로 감싸면 `STORE_TABS` 가 2개 이상일 때 **상단 탭간이동 바와 페이지 헤더가 자동으로 붙는다.**
@@ -97,13 +117,14 @@ id 는 **양쪽이 정확히 같아야** 한다(`store-<name>`). 백엔드에 �
 - `/store-tab 생성 <원본탭>` → 신설. `/store-tab 수정 <매장탭>` → 기존 매장탭 변경.
 - **인자가 없으면** `frontend/js/navTabs.js` 근거로 목록을 제시하고 **AskUserQuestion 으로 묻는다**(임의 진행 금지).
 - 생성인데 이미 같은 원본의 매장탭이 있으면 → **수정임을 먼저 알리고** 범위를 확인한다.
+  기존 매장탭의 범위·검증 상태는 `references/status.md`(§7)에서 확인한다.
 
 ### 4-1. 탐색 (읽기 전용 — 파일 생성·수정 전)
 1. **원본 탭 메모리 3종**: `.claude/memory/domain/<tab>.md` · `service/<tab>-architecture.md` · `domain/<tab>-feedback.md`.
 2. **원본 View·위젯**: 서브탭 구성, 각 표의 컬럼, 어떤 계산이 위젯 안에 갇혀 있는지.
 3. **API**: `frontend/js/api.js` 의 호출 함수 — 매장탭도 **동일 엔드포인트를 재사용**한다.
 4. **매장이 실제로 하는 행동**을 원본 화면에서 1~2개 식별한다(여기서 남길 것이 정해진다).
-5. **§1 제외표 전수 대조** — 원본의 어느 요소가 E1~E11 중 무엇에 걸리는지 목록화.
+5. **§1 제외표 전수 대조** — 원본의 어느 요소가 E1~E10 중 무엇에 걸리는지 목록화.
 
 ### 4-2. Plan 제시 (필수 — 승인 전 파일 생성·수정 절대 금지)
 `EnterPlanMode` 로 진입해 아래를 담고 `ExitPlanMode` 로 승인받는다.
@@ -117,7 +138,7 @@ id 는 **양쪽이 정확히 같아야** 한다(`store-<name>`). 백엔드에 �
   | 매장간 비교표 | 제외 | — | E3 |
 
 - **최종 화면 스케치**: 남는 서브탭·컬럼·액션 버튼·검색/필터 + **원본 대비 감소분**.
-- **변경 파일 목록**(신규/수정 구분, 수정은 몇 줄인지) + **등록 2곳** 명시.
+- **변경 파일 목록**(신규/수정 구분, 수정은 몇 줄인지) + **등록 방식**(§3-1 (가) 업무 화면 / (나) 사이드바 탭) 명시.
 - **검증 계획**(§5).
 
 **결정 포인트는 AskUserQuestion 으로 확인**(§6).
@@ -128,7 +149,7 @@ id 는 **양쪽이 정확히 같아야** 한다(`store-<name>`). 백엔드에 �
 **동작 무변경 추출**만 허용하고, 판정 규칙 변경이 필요하면 그 시점에 멈추고 보고한다.
 
 ### 4-4. 검증 → 4-5. 마무리
-`dev-blueprint` §6 게이트 + §5 매장탭 전용 게이트를 수행한다. §7 현황 표에 행을 추가하고,
+`dev-blueprint` §6 게이트 + §5 매장탭 전용 게이트를 수행한다. §7 현황 표(`references/status.md`)에 행을 추가하고,
 새로 배운 지뢰는 `/learn` 으로 원본 탭의 `<tab>-feedback.md` 에 누적한다.
 커밋과 `/server-test` 는 **명시 승인 후에만**.
 
@@ -138,7 +159,7 @@ id 는 **양쪽이 정확히 같아야** 한다(`store-<name>`). 백엔드에 �
 - [ ] **수치 일치** — 같은 날짜·같은 매장에서 원본 == 매장탭 (다르면 판정 이중화 사고)
 - [ ] **승인된 범위와 일치** — plan 의 포함/제외 목록 그대로. **임의 축소 0 · 임의 추가 0**
 - [ ] **서브탭 바·페이지 헤더 미노출** — `SubTabLayout` 미경유 라우트로 등록됨
-- [ ] **등록 2곳** — `navTabs.js` + `role_permission_service.TAB_GROUPS`, id 문자열 동일
+- [ ] **등록(§3-1)** — (가) 업무 화면: `meta.nav: 'store-dashboard'` + 할 일 리스트 진입 행 / (나) 사이드바 탭: `navTabs.js` + `role_permission_service.TAB_GROUPS`, id 문자열 동일
 - [ ] **권한 확인** — 비관리자 계정으로 탭 노출·진입 성공(라우트 튕김 없음)
 - [ ] **로딩 스피너 + 작업명** (`dev-blueprint` §4-5)
 - [ ] 콘솔 에러 0 · 매장탭 전용 API 신설 없음 · 판정 로직 복사 없음
@@ -155,14 +176,9 @@ id 는 **양쪽이 정확히 같아야** 한다(`store-<name>`). 백엔드에 �
 
 ## 7. 현황
 
-| 매장탭 | 원본 탭 | 라우트 | 상태 |
-|---|---|---|---|
-| 태그매치 | (없음 — 매장 전용으로 신설된 탭) | `/tag-match` | 운영 중 (이 스킬 이전에 생성, `SubTabLayout` 경유) |
-| 매장 대시보드 | (허브 — 원본 없음) | `/store` | 오늘 할 일 리스트. 샘플반납만 실데이터, 반품·이고·깔교·태그매치는 `준비중` 행 |
-| 샘플반납 | 샘플반납 `/sample-return` | `/store/sample-return` | 구현 완료·**dev 미검증**. 범위=본사 chrome 만 제거(매장 선택 아래 원본 그대로). 진입은 할 일 리스트 경유 |
-| 재고조사 | MD 내부관리 > 재고 점검 `/md-inventory` 의 '조사 리스트' 섹션 | `/store/inventory-survey` | 구현 완료·**dev 미검증**. 범위="리스트만"(파라미터 조절·전매장 요약·실사 집계·다운로드 제외). 행 단위 체크가 완료이고 할일 집계에 들어간다. 저장은 `store_task_product_checks` 에 `task_type='inventory-survey'` — **DDL 없음**. 데스크톱+모바일 |
+현황 표는 `references/status.md` 에 있다. 매장탭을 만들거나 고치면 거기에 행을 추가·갱신한다.
 
-> 탭 정본은 `frontend/js/navTabs.js` `STORE_TABS` 다. 위 표와 어긋나면 **정본이 옳다.**
+> 사이드바 탭 정본은 `frontend/js/navTabs.js` `STORE_TABS`, 업무 화면 라우트 정본은 `frontend/js/app.js` 다. 현황 표와 어긋나면 **정본이 옳다.**
 
 ## 8. 알려진 갭 — 매장 스코프 (반드시 인지하고 작업할 것)
 
@@ -181,11 +197,7 @@ id 는 **양쪽이 정확히 같아야** 한다(`store-<name>`). 백엔드에 �
 
 ## 9. 금지
 
-- **plan 제시·승인 전 파일 생성·수정** (1순위 규칙)
-- **원본 View·위젯·service 수정**(동작 무변경 추출은 예외) · **`SubTabLayout` 등 공용 컴포넌트 수정**
-- **판정·계산 로직을 매장탭에 복사** — 정본 이중화. 반드시 import 공유
-- **매장탭 전용 API·전용 테이블 신설** — 원본 엔드포인트 재사용
-- **승인된 범위를 벗어난 임의 축소·임의 추가** — §1 은 지정이 없을 때의 기본값일 뿐,
-  **요청자가 남기라고 한 것을 덮어쓰지 않는다**(서브탭·컬럼 임의 삭제 금지)
-- 등록 1곳만 하고 완료 보고 · 미승인 커밋 · 미승인 `/server-test`
+앞 절에 이미 적힌 금지는 되풀이하지 않는다(§0 · §3 · §3-1 · §3-2 · §4-2 · §4-3 · §4-4 · §5). 그중 **plan 제시·승인 전 파일 생성·수정 금지(§4-2)가 1순위 규칙**이다. 다른 절에 없는 것만 남긴다.
+
+- **매장탭 전용 테이블 신설** — 원본 엔드포인트·테이블 재사용
 - `dev-blueprint` 내용 중복 서술(참조만)

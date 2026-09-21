@@ -1,6 +1,6 @@
 ---
 name: ingest-guard
-description: 인입 전 파일 포맷 방어로직(format guard) 표준. 고정 컬럼 인덱스 파서가 컬럼 밀림/잘못된 양식을 '에러 없이' 인입해 잘못된 데이터를 저장하는 사고를 막는다. "포맷 검증" "인입 방어" "format guard" "잘못된 데이터 저장" "컬럼 밀림" "ingest 검증" "다른 인입에도 적용" 키워드, 또는 새 인입 경로(CSV/XLSX→DB)에 방어로직을 붙일 때 호출. 정본 구현=ingest_format_validator.py 를 패턴으로 재사용한다.
+description: Use when 새 인입 경로(CSV/XLSX→DB)에 포맷 방어로직을 붙일 때, 고정 컬럼 인덱스 파서가 컬럼 밀림이나 다른 양식을 에러 없이 인입해 잘못된 데이터가 저장됐을 때, 또는 정상 파일이 포맷 검사에 막혀 인입이 멈췄을 때. 트리거 — "포맷 검증", "인입 방어", "format guard", "잘못된 데이터 저장", "컬럼 밀림", "ingest 검증", "다른 인입에도 적용".
 ---
 
 # 인입 포맷 방어로직(format guard) 표준
@@ -74,7 +74,8 @@ purchase_daily 에 적재 → 잘못된 주문장 생성.
 5. **호출부를 처리한다** — 배치 루프는 `except FormatValidationError` 로 스킵+미마킹+`[FORMAT][SKIP]`
    로깅. 단일 실행은 메시지+exit 1. `--check` 서브커맨드 추가.
 6. **테스트를 추가한다** — 정상 + 불량(컬럼삽입 시프트/컬럼수 오류/외래양식/빈파일) +
-   **성능(데이터행 미순회)**. `test_ingest_format_validator.py` 패턴(pytest 불요, 독립 실행).
+   **성능(데이터행 미순회)**. pytest 없이 도는 독립 실행 스크립트로 짠다. **테스트 파일은 커밋하지 않는다** —
+   scratchpad 에서 돌리고 결과만 보고한다(`CLAUDE.md` §테스트 파일 커밋 금지).
 7. **실데이터 전수 점검** — 운영 폴더의 동종 파일 전부에 `--check` 를 돌려 **false-positive 0** 확인.
    (macOS 한글 파일명은 NFD → `unicodedata.normalize('NFC', name)` 후 매칭.)
 
@@ -85,8 +86,6 @@ purchase_daily 에 적재 → 잘못된 주문장 생성.
 - **성능**: 전체 행을 순회하지 않는다. **라벨 행(헤더/서브헤더) 1행 + df.columns 만** 읽고
   데이터행은 접근하지 않는다. 검증기는 호출부가 **이미 로드한** DataFrame/Worksheet 를 재사용(추가 파일 I/O 0).
 - **게이트는 DB 쓰기보다 먼저**. commit 이후/중간 검증은 부분 저장을 못 막는다.
-- **구조만 차단, 데이터는 차단 안 함**: 컬럼 밀림·외래 양식 = 파일 전체 차단(①②). 셀 단위 데이터
-  문제(비숫자 등)는 **차단 사유가 아니다** — 파서가 행 단위로 흘리고, 정합은 인입 후 별도 점검.
 - **추가 컬럼은 차단 사유가 아니다**: 원천은 컬럼을 **추가**하지, 기존 컬럼을 지우지 않는다.
   필수 필드 라벨이 다 있으면 PASS 하고 모르는 컬럼은 건너뛴다. 폭(ncols) 등호검사로 막으면
   원천이 컬럼 하나 붙일 때마다 **인입 전체가 멈춘다**(2026-08-19 '구분1/2/3' 실사고).
@@ -107,8 +106,8 @@ purchase_daily 에 적재 → 잘못된 주문장 생성.
 python3 ingest_incremental.py --check --file /path/증분사입흐름_YYYYMMDD_오늘.csv
 # 미처리 신규 파일 전부 점검
 python3 ingest_incremental.py --check
-# 단위 테스트(독립 실행)
-python3 backend/scripts/test_ingest_format_validator.py
+# 단위 테스트(독립 실행) — 레포에 두지 않는다. scratchpad 에 만든 스크립트를 backend/ 에서 돌린다
+PYTHONPATH=. python3 <scratchpad>/test_<대상>_validator.py
 ```
 
 검증기 import 에 DB DSN 환경변수가 필요하면 더미로 채운다(`--check`/테스트는 DB 미접근):
@@ -134,7 +133,7 @@ python3 backend/scripts/test_ingest_format_validator.py
 
 ## 관련
 
-- 정본 구현: `backend/scripts/ingest_format_validator.py`, `ingest_incremental.py`(가드/`--check`),
-  `test_ingest_format_validator.py`(테스트 패턴).
+- 정본 구현: `backend/scripts/ingest_format_validator.py`, `ingest_incremental.py`(가드/`--check`).
+  (옛 테스트 선례 `test_ingest_format_validator.py` 는 `ed9427d` 에서 레포에서 빠졌다 — `git show ed9427d^:backend/scripts/test_ingest_format_validator.py` 로 패턴을 볼 수 있다.)
 - 인입 파이프라인 맥락: `/order-cycle`, `/order-manual`, `db-sync`.
 - 배포: backend/scripts 는 바인드마운트 → NAS `git pull` 로 반영(승인 필요, 임의 배포 금지).

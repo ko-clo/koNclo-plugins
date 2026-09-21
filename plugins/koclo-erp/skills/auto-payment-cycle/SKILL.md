@@ -1,6 +1,6 @@
 ---
 name: auto-payment-cycle
-description: 자동지급 일일 검증 사이클. "자동지급", "지급관리", "영수증 OCR", "매칭 돌려", "자가검수", "검증 실행", "신규주문장 검증", "K5 체크" 같은 요청에 사용.
+description: Use when 자동지급 일일 검증 사이클 요청을 받았을 때. 트리거 — "자동지급", "지급관리", "영수증 OCR", "매칭 돌려", "자가검수", "검증 실행", "신규주문장 검증", "K5 체크".
 ---
 
 # 자동지급 일일 검증 사이클
@@ -14,9 +14,9 @@ description: 자동지급 일일 검증 사이클. "자동지급", "지급관리
 - "신규주문장 체크"
 
 ## 시작 전 필독
-1. `~/.claude/.../memory/auto-payment.md`
-2. `~/.claude/.../memory/auto-payment-feedback.md` (F1~F5 숙지)
-3. `~/.claude/.../memory/auto-payment-architecture.md`
+1. `.claude/memory/domain/auto-payment.md`
+2. `.claude/memory/domain/auto-payment-feedback.md` (F1~ 전부 숙지 — 계속 늘어난다)
+3. `.claude/memory/service/auto-payment-architecture.md`
 
 ## 절대 원칙
 - **일자 기준** — 사용자가 명시한 일자로만 작업 (F1)

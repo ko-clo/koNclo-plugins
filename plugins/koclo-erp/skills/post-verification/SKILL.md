@@ -1,6 +1,6 @@
 ---
 name: post-verification
-description: 기능 구현, 버그 수정, 리팩터링, API/DB/UI/설정 변경을 마친 뒤 최종 보고 전에 사용하는 KOCLO 사후 검증 스킬. 입력값, 출력값, 예외 처리, 로깅, 테스트, 회귀, dev 서버 확인, code-review 필요 여부를 증거 기반으로 정리해야 할 때 호출한다.
+description: Use when 기능 구현, 버그 수정, 리팩터링, API/DB/UI/설정 변경을 마친 뒤 최종 보고 전에 사후 검증이 필요할 때. 입력값, 출력값, 예외 처리, 로깅, 테스트, 회귀, dev 서버 확인, code-review 필요 여부를 증거 기반으로 정리해야 할 때 호출한다.
 ---
 
 # Post Verification
