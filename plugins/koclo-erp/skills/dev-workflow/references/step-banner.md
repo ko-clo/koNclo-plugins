@@ -1,21 +1,7 @@
-# dev-workflow — 스텝 배너 상세 (§1)
+# dev-workflow — 스텝별 헤딩·카테고리 바 (§1)
 
 > 본체 `SKILL.md` §1 의 상세다. 배너의 네 줄 정의 · 진행 레일 7줄 · 배너 규칙은 본체에 있다.
 > 여기에는 **예시 · 스텝별 헤딩 표 · 카테고리 바** 가 있다.
-
-## 스텝 배너 예시
-
-````markdown
----
-
-### ② 조사 요약 — stacking context 가둠
-`① 분류 ▸ 【② 조사】 ▸ ③ 설계 ▸ ④ 승인 ▸ ⑤ 구현 ▸ ⑥ 검증 ▸ ⑦ 완료`
-
-> 근본 원인은 z-index 값이 아니라 `.tab-body` 의 transform 이 새 stacking context 를 만든 것.
-
-- `frontend/css/layout.css:88` — transform 진원지
-- `frontend/views/InventoryView.js:412` — 모달 마운트 위치
-````
 
 ## 스텝별 헤딩과 꼬리
 

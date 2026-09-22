@@ -10,6 +10,15 @@ description: Use when 지급율 탭/서브탭의 수정·조회·기능추가 �
 > 요청 영역 식별 → 전담 에이전트 위임(Agent 도구) → 결과 통합 → 전체 탭 회귀 검증.
 > 탭 개발 표준은 `dev-blueprint` 스킬을 상위 규범으로 따른다(중복 서술 금지).
 
+## 읽을 파일
+
+절 번호는 고정 ID(다른 스킬이 인용). 경로 기준 `.claude/skills/payrate/`.
+
+| 파일 | 절 | 읽는 시점 |
+|---|---|---|
+| `references/delegation.md` | §2 · §5 | 위임 대상·경계를 정하기 전 |
+| `references/verification.md` | §3 | 변경 후 회귀 검증할 때 |
+
 ## 0. 영역 ↔ 에이전트 ↔ 담당 매핑
 
 | 영역 | 에이전트 | 담당 |
@@ -28,26 +37,14 @@ description: Use when 지급율 탭/서브탭의 수정·조회·기능추가 �
 4. **결과 통합** → 5. **전체 탭 회귀 검증**(§3).
 
 ## 2. 위임 규칙 (공유 자산 — 이 탭은 결합도가 높다)
-아래를 건드리면 영향 영역을 **모두** 위임하거나 메인이 직접 조정한다(`service/payrate-architecture.md`로 범위 확인):
-- **`/api/payrate/overview` 응답**(`meta`/`grand`/`stores[]`/`weekly_trend`) — payrate-data가 형태 소유, 3 서브탭이 소비. **스키마 변경 = data + 소비 서브탭 전부 회귀**.
-- **`PayrateOverviewView.js` 단일 파일** — 3 프론트 에이전트가 서로 다른 `v-show` 섹션·computed 그룹만 소유. 공통부(toolbar·tab bar·`setup()` return·날짜 fetch·포맷터 `fmtPr`/`fmtWon`/`fmtAmt`) 변경은 **메인이 조정**(충돌 방지).
-- **`PayrateTrendChart.js`** — 오버뷰·지급관리 공유.
-- **밴딩 임계**(정본 `rebuild_payrate_db.py`) — 업무 규칙. 임의 단순화 금지.
+
+→ 위임 대상을 정하거나 공유 자산(응답 계약·공용 API·산식)을 건드릴 때 `references/delegation.md` 를 읽는다.
 
 ## 3. 회귀 검증 (dev-blueprint 스킬 §6 게이트 재사용)
-- **import 스모크**(필수): `python -c "from app.routers import payrate_router"` 무에러 — 또는 배포 후 `Application startup complete` + `/docs` 200.
-- **3 서브탭 렌더**: 오버뷰/지급관리/본사물류 전부 정상, **콘솔 에러 0**.
-- **인터랙션**: 기간(From/To·전체기간)·매장 select·탭 전환·차트 갱신.
-- **데이터 정합**: 분자(지급)·분모(매출) **동일 기간**(0% 사건 방지), 밴딩 임계가 정본과 일치.
-- **빌드리스 유지**·**다른 탭 무손상**.
+
+→ `dev-blueprint` 스킬 §6 게이트를 따른다. 이 탭 고유 항목은 `references/verification.md` 에 있다.
 
 ## 4. 작업 전 필독
 - `.claude/memory/domain/payrate.md` — 업무 규칙·용어·서브탭 관계
 - `.claude/memory/service/payrate-architecture.md` — 파일/API/DB/데이터 흐름
 - `dev-blueprint` 스킬 — 탭 개발 표준
-
-## 5. 경계 — '지급' 3중 충돌 주의 (반드시 구분)
-- **이 스킬/payrate-\*-agent** = **지급율**(`/payrate`, `PayrateOverviewView`) 탭 개발. *이 탭 안의 '지급관리' 서브탭(management)도 여기 포함*.
-- **`auto-payment-agent`** = 별개 최상위 탭 **지급관리**(`/payment`, `PayrateView`) — 영수증OCR·사입처매칭·자동지급. **건드리지 않음**.
-- **`md-agent`** = 지급율을 *기획 입력 축*으로 사용(주문추천·포트폴리오). 탭 개발 아님.
-→ "지급율 화면/오버뷰/본사물류/역마진" → payrate · "영수증/매칭/자동지급" → auto-payment · "주문추천/무엇을 넣을지" → md-agent.
