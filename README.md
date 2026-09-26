@@ -51,9 +51,13 @@ Open `/hooks` once after installation, review the plugin's `SessionStart` hook, 
 Inside Claude Code, run the two commands separately:
 
 ```text
-/plugin marketplace add https://github.com/<team>/koNclo-plugins
+/plugin marketplace add ko-clo/koNclo-plugins
 /plugin install koclo-erp@koclo-team
 ```
+
+- `ko-clo/koNclo-plugins` is the GitHub `owner/repo` of this repository. The full URL `https://github.com/ko-clo/koNclo-plugins` also works.
+- `koclo-team` is the marketplace name defined in `.claude-plugin/marketplace.json`, not the GitHub org. Use it as-is after the `@`.
+- For a local checkout, pass the absolute path instead: `/plugin marketplace add /absolute/path/to/koNclo-plugins`.
 
 Then use `/koclo`, `/vmd`, `/payrate`, or `/team-verify`.
 
