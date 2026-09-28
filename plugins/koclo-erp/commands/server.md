@@ -17,6 +17,10 @@ argument-hint: "on [분] | off | status"
 
 출력 문구는 스크립트가 만든다 — 여기서 따로 지어내지 않는다.
 
+**server 는 NAS 게이트와 함께 여닫힌다.** koclo-vm ssh 는 서버 가드·NAS 가드·koclo-erp 플러그인
+원격 가드를 모두 거치므로, `server on/off/status` 한 번으로 셋을 같이 처리한다(플러그인 상한 120분).
+`/nas on` 을 따로 시키거나 플러그인 게이트를 따로 열지 않는다.
+
 ## 열린 뒤에도 지키는 것
 
 - 게이트가 열리면 koclo-vm 위의 **조회·로그 확인·DB 인입/수정까지** 확인 절차 없이 수행된다.
@@ -26,9 +30,9 @@ argument-hint: "on [분] | off | status"
   `alembic downgrade` 는 훅이 allow 를 내리지 않고 정상 권한 확인으로 넘긴다.
 - 운영 데이터 수정·서비스 재시작·배포는 게이트와 별개로 **CLAUDE.md 의 Dangerous Action
   Safety Rules** 를 따른다. 실행 전 대상·영향·복구 방법을 알리고 승인을 받는다.
-- koclo-vm 은 NAS 가 아니라 Hyper-V VM 이다. NAS(`100.99.51.88`) 자체를 다루는 작업은
-  이 게이트가 아니라 `/nas on` 소관이다. 단 koclo-vm 에는 NAS 공유가 CIFS 로 마운트돼
-  있으므로(`/volume1/자동주문`), 그 경로를 **쓰는** 작업은 NAS 안전 규칙을 함께 적용한다.
+- koclo-vm 은 NAS 가 아니라 Hyper-V VM 이다. `/server on` 이 NAS 게이트도 열지만 NAS
+  (`100.99.51.88`) 자체를 다루는 작업이 허용된다는 뜻은 아니다. koclo-vm 의 CIFS 마운트
+  (`/volume1/자동주문` 등) 경로를 **쓰는** 작업을 포함해 NAS 안전 규칙을 그대로 적용한다.
 
 ## 혼동 주의 — 이름이 비슷한 다른 명령
 
@@ -36,4 +40,4 @@ argument-hint: "on [분] | off | status"
 - `/server-clear`: `/server-test` 로 반영한 변경분을 매니페스트 경로만 원복.
 - `/server`      : (이 명령) koclo-vm 접속 게이트 여닫기. 파일을 반영하지 않는다.
 
-작업이 끝나면 `/server off` 로 다시 잠그도록 사용자에게 안내한다.
+작업이 끝나면 `/server off` 로 다시 잠그도록 사용자에게 안내한다(NAS 게이트도 함께 잠긴다).
