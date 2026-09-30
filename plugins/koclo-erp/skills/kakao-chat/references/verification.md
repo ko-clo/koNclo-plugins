@@ -16,7 +16,7 @@ node --check frontend/js/views/KakaoChatView.js   # 프론트 변경 시 해당 
 | 확인 | 방법 | 기대 |
 |---|---|---|
 | 토큰 가드 | `/api/kakao/skill` 무토큰·틀린 토큰 curl | 401 |
-| 스킬 즉답 | 토큰 + 인사 발화 payload | 200, textCard |
+| 스킬 즉답 | 토큰 + 인사 발화 payload | 200, simpleText(버튼 없음) |
 | 인입 멱등 | 같은 JSON 2회 ingest | 2회차 삽입 0 |
 | MCP 도구 | koclo-vm `agent.log` 에서 `koclo-erp-kakao` 등록·호출 | `registered N tool(s)` |
 | 격리 | 앱 컨테이너 env `HERMES_SEND_MODE` | `1` |

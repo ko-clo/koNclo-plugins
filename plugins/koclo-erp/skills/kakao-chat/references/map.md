@@ -19,7 +19,7 @@
 |---|---|---|
 | 웹훅 | `backend/app/routers/kakao_router.py` | `/api/kakao/` — skill · history/ingest · history/watermark. Bearer `KAKAO_SKILL_TOKEN` |
 | 조회 API | `backend/app/routers/kakao_chat_router.py` | `/api/kakao-chat/` — rooms · logs · supplier-candidates · suppliers(PUT) · reply-draft. 관리자 전용 |
-| 스킬 응답 | `services/kakao_chat_service.py` | textCard 조립·기본 안내 |
+| 스킬 응답 | `services/kakao_chat_service.py` | simpleText 조립(버튼 없음)·기본 안내 |
 | 규칙 엔진 | `services/kakao_reply_engine.py` | `classify_message`·템플릿·금액 패턴. 순수 함수 |
 | 콜백 | `services/kakao_callback_service.py` | Codex 호출·안전 필터·callbackUrl POST·킬스위치 |
 | 원장 | `services/kakao_chat_log_service.py` | 인입·스킬 대화 저장·최근 대화 조회 |
