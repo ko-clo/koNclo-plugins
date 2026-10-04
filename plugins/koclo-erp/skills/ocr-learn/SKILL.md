@@ -6,7 +6,7 @@ description: Use when 자동판정 테스트서버(PaddleOCR) 결과를 메인�
 # 자동판정 PaddleOCR 학습 루프
 
 테스트서버(koclo-vm `autojudge-test`, `AJ_OCR_ENGINE=paddle`)의 결과를 메인서버(claude 비전) 결과를 정답으로 삼아
-채점하고, 오답을 원인별로 나눠 `receipt-autojudge/aj_paddle.py` 파서·분리 규칙을 고친다.
+채점하고, 오답을 원인별로 나눠 `receipt-autojudge/auto_judge_paddle.py` 파서·분리 규칙을 고친다.
 날짜가 쌓일수록 **회귀 세트 전체**로 재채점해 한 날짜에 과적합하지 않게 한다.
 
 ## 전제
@@ -30,15 +30,15 @@ description: Use when 자동판정 테스트서버(PaddleOCR) 결과를 메인�
    | 원인 | 판단 근거 | 대응 |
    |---|---|---|
    | OCR 글자 오독 | 원시 OCR 텍스트부터 틀림(드랍→드립) | 파서로 못 고침 — 사입처 목록 대조 등 후처리 검토 |
-   | 파서 규칙 | 원시 OCR 은 맞는데 필드가 틀림 | `aj_paddle.py` 규칙 보정 |
+   | 파서 규칙 | 원시 OCR 은 맞는데 필드가 틀림 | `auto_judge_paddle.py` 규칙 보정 |
    | 분리 | `split_diff` (조각 수 차이) | 사진을 직접 확인(썸네일) 후 분리 임계값 보정 |
    | **claude 비전 오답** | 사진 확인 결과 claude 비전이 틀림 | 보정하지 않는다 — 보고에 명시 |
    분리 차이는 **반드시 사진으로 확인**한다(2026-09-28: 34장 중 1장은 claude 비전이 틀렸다).
 4. **보정 설계·승인** — 무엇을 왜 고치는지, 예상 효과를 보여주고 승인받은 뒤 로컬 `receipt-autojudge` 에서 고친다.
-5. **회귀 재채점** — 고친 `aj_paddle.py` 를 올려 쌓인 모든 날짜를 재파싱:
+5. **회귀 재채점** — 고친 `auto_judge_paddle.py` 를 올려 쌓인 모든 날짜를 재파싱:
    ```bash
    ssh koclo-vm 'mkdir -p ~/paddle_dev/ocr_learn/code'
-   scp -q <receipt-autojudge>/aj_paddle.py <receipt-autojudge>/aj_layout.py koclo-vm:paddle_dev/ocr_learn/code/
+   scp -q <receipt-autojudge>/auto_judge_paddle.py <receipt-autojudge>/auto_judge_layout.py koclo-vm:paddle_dev/ocr_learn/code/
    ssh koclo-vm '/home/konclo/autojudge/.venv/bin/python ~/paddle_dev/ocr_learn/ocr_learn.py reparse --code ~/paddle_dev/ocr_learn/code'
    ```
    "저장된 결과(수정 전)" 대비 **전체 수치가 떨어지면 반영하지 않는다**(날짜별 수치도 함께 본다).
