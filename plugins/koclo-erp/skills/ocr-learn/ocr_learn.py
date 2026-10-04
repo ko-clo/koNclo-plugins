@@ -3,11 +3,11 @@
 
   collect(기본): 그날 메인(Claude) erp<날짜>_* ↔ 테스트(PaddleOCR) test_erp<날짜>_* 결과를 매장별로 짝지어
                  회귀 세트(dataset/)에 쌓고 일치율·오답 보고서를 낸다. 결과가 없으면 에러 없이 상황만 알린다.
-  reparse     : 수정한 aj_paddle.py 로 회귀 세트 전체의 원시 OCR 을 다시 파싱해 재채점한다(재OCR 없음).
+  reparse     : 수정한 auto_judge_paddle.py 로 회귀 세트 전체의 원시 OCR 을 다시 파싱해 재채점한다(재OCR 없음).
 
 사용:
   python ocr_learn.py collect [--date YYYY-MM-DD]
-  python ocr_learn.py reparse --code <aj_paddle.py 가 있는 폴더>
+  python ocr_learn.py reparse --code <auto_judge_paddle.py 가 있는 폴더>
 """
 import argparse
 import datetime
@@ -25,8 +25,8 @@ WORK = os.path.expanduser(os.environ.get('OCR_LEARN_WORK', '~/paddle_dev/ocr_lea
 DATASET = os.path.join(WORK, 'dataset')
 REPORTS = os.path.join(WORK, 'reports')
 TEST_PREFIX = 'test_'
-PART_MARK = '__rc'               # 여러 장 분리 조각 표식(aj_layout.MARK)
-RAW_DIR_NAME = '_paddle_raw'     # aj_paddle.RAW_DIR_NAME
+PART_MARK = '__rc'               # 여러 장 분리 조각 표식(auto_judge_layout.MARK)
+RAW_DIR_NAME = '_paddle_raw'     # auto_judge_paddle.RAW_DIR_NAME
 SUMMARY_FIELDS = ('전잔', '당일합계', '당잔', '매입전잔', '매입잔액', '부가세', '최종잔', '반입액', '입금')
 SUPPLIER_PREFIX_LENGTH = 2       # 상호 앞 두 글자 같거나 포함관계면 같은 사입처
 MIN_LATIN_NAME = 4               # 병기 영문 상호 일치로 판정할 최소 길이
@@ -292,7 +292,7 @@ def reparse(code_dir):
         print('회귀 세트가 비어 있다 — 먼저 /ocr-learn 으로 결과를 수집하세요')
         return 0
     sys.path.insert(0, code_dir)
-    parser = importlib.import_module('aj_paddle')
+    parser = importlib.import_module('auto_judge_paddle')
     print(f'파서: {parser.__file__}')
     print(format_summary('저장된 결과(수정 전)', score_dataset(None)))
     print(format_summary('재파싱(수정 후)', score_dataset(parser)))
@@ -303,7 +303,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('command', nargs='?', default='collect', choices=('collect', 'reparse'))
     ap.add_argument('--date', default=datetime.date.today().isoformat())
-    ap.add_argument('--code', default=TEST_BASE, help='reparse 에 쓸 aj_paddle.py 폴더')
+    ap.add_argument('--code', default=TEST_BASE, help='reparse 에 쓸 auto_judge_paddle.py 폴더')
     a = ap.parse_args()
     try:
         datetime.date.fromisoformat(a.date)
