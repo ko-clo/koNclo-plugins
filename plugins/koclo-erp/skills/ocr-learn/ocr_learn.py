@@ -3,6 +3,7 @@
 
   collect(기본): 그날 메인(Claude) erp<날짜>_* ↔ 테스트(PaddleOCR) test_erp<날짜>_* 결과를 매장별로 짝지어
                  회귀 세트(dataset/)에 쌓고 일치율·오답 보고서를 낸다. 결과가 없으면 에러 없이 상황만 알린다.
+                 판독은 DB auto_judge.ocr_batches, 원시 OCR 은 auto_judge.ocr_raw_batches 에서 읽는다.
   reparse     : 수정한 auto_judge_paddle.py 로 회귀 세트 전체의 원시 OCR 을 다시 파싱해 재채점한다(재OCR 없음).
 
 사용:
@@ -25,7 +26,7 @@ DATASET = os.path.join(WORK, 'dataset')
 REPORTS = os.path.join(WORK, 'reports')
 TEST_PREFIX = 'test_'
 PART_MARK = '__rc'               # 여러 장 분리 조각 표식(auto_judge_layout.MARK)
-RAW_DIR_NAME = '_paddle_raw'     # auto_judge_paddle.RAW_DIR_NAME
+RAW_TABLE = 'auto_judge.ocr_raw_batches'   # 테스트 워커(auto_judge_ocr_store.save_raw)가 쓰는 원시 OCR 표
 SUMMARY_FIELDS = ('전잔', '당일합계', '당잔', '매입전잔', '매입잔액', '부가세', '최종잔', '반입액', '입금')
 SUPPLIER_PREFIX_LENGTH = 2       # 상호 앞 두 글자 같거나 포함관계면 같은 사입처
 MIN_LATIN_NAME = 4               # 병기 영문 상호 일치로 판정할 최소 길이
@@ -126,32 +127,67 @@ def format_summary(label, stats):
 
 # ─────────────────────────── 수집 ───────────────────────────
 
-def load_records(run_dir):
+def import_main_module(name):
+    """메인 워커 모듈을 가져온다 — DB 설정(auto_judge_env · $MAIN_BASE/_db.env)과 판독 저장소를 그대로 쓴다."""
+    if MAIN_BASE not in sys.path:
+        sys.path.insert(0, MAIN_BASE)
+    return importlib.import_module(name)
+
+
+def connect_db():
+    import psycopg2
+
+    return psycopg2.connect(**import_main_module('auto_judge_env').pg_kwargs())
+
+
+def describe_error(error):
+    """예외 → '이름: 첫 줄'. psycopg2 메시지의 LINE·^ 줄이 로그를 여러 줄로 깨지 않게 한다."""
+    first_line = (str(error).strip().splitlines() or [''])[0]
+    return f'{type(error).__name__}: {first_line}'
+
+
+def load_records(job_key):
+    """판독(auto_judge.ocr_batches)을 배치 이름순으로 펼친다 — 키는 file, 여러 장 조각은 file#partN."""
+    _manifest, _site, batches = import_main_module('auto_judge_ocr_store').load(job_key)
     records = {}
-    for path in sorted(glob.glob(os.path.join(run_dir, 'vision', 'b*.json'))):
-        try:
-            with open(path, encoding='utf-8') as fh:
-                for record in json.load(fh):
-                    name = str(record.get('file') or '')
-                    if record.get('part'):
-                        name += f"#part{record['part']}"
-                    records[name] = record
-        except (OSError, ValueError) as error:
-            print(f'  ⚠ {path} 읽기 실패(건너뜀): {error}')
+    for _batch_name, rows in sorted(batches.items()):
+        for record in rows or []:
+            name = str(record.get('file') or '')
+            if record.get('part'):
+                name += f"#part{record['part']}"
+            records[name] = record
     return records
 
 
-def load_raw(run_dir):
-    """테스트 실행의 원시 OCR — {'detect': {...}, 'read': {...}} 병합."""
+def load_engine_records(job_key):
+    """load_records + 0건 사유 출력. 조회 실패도 원인을 찍고 빈 결과로 돌린다(그 매장만 건너뛴다)."""
+    try:
+        records = load_records(job_key)
+    except Exception as error:
+        print(f'- {job_key}: 판독 0건 — auto_judge.ocr_batches 조회 실패({describe_error(error)})')
+        return {}
+    if not records:
+        print(f'- {job_key}: 판독 0건 — auto_judge.ocr_batches 에 {job_key} 없음')
+    return records
+
+
+def load_raw(job_key):
+    """테스트 실행의 원시 OCR(auto_judge.ocr_raw_batches) — {'detect': {...}, 'read': {...}} 병합."""
     merged = {'detect': {}, 'read': {}}
-    for path in sorted(glob.glob(os.path.join(run_dir, 'vision', RAW_DIR_NAME, 'b*.json'))):
+    try:
+        connection = connect_db()
         try:
-            with open(path, encoding='utf-8') as fh:
-                raw = json.load(fh)
-            merged['detect'].update(raw.get('detect') or {})
-            merged['read'].update(raw.get('read') or {})
-        except (OSError, ValueError) as error:
-            print(f'  ⚠ {path} 읽기 실패(건너뜀): {error}')
+            with connection.cursor() as cursor:
+                cursor.execute(f'SELECT payload FROM {RAW_TABLE} WHERE job_key = %s ORDER BY batch_name', (job_key,))
+                payloads = [payload for (payload,) in cursor.fetchall()]
+        finally:
+            connection.close()
+    except Exception as error:   # 재채점용 보조 자료 — 없으면 그 날짜만 reparse 에서 빠진다
+        print(f'  ⚠ {RAW_TABLE} 조회 실패(건너뜀): {describe_error(error)}')
+        return merged
+    for raw in payloads:
+        merged['detect'].update(raw.get('detect') or {})
+        merged['read'].update(raw.get('read') or {})
     return merged
 
 
@@ -162,12 +198,8 @@ def run_keys(base, prefix, d8):
 
 def queue_jobs(date):
     """그날 판정 잡의 큐 상태(auto_judge.queue_jobs) — 결과가 없을 때 왜 없는지 설명하는 재료. DB 를 못 읽으면 빈 목록."""
-    sys.path.insert(0, MAIN_BASE)   # 메인 워커의 DB 설정(auto_judge_env · $MAIN_BASE/_db.env)을 그대로 쓴다
     try:
-        import auto_judge_env
-        import psycopg2
-
-        connection = psycopg2.connect(**auto_judge_env.pg_kwargs())
+        connection = connect_db()
         try:
             with connection.cursor() as cursor:
                 cursor.execute("""SELECT target_worker, job_key, store, status,
@@ -178,7 +210,7 @@ def queue_jobs(date):
         finally:
             connection.close()
     except Exception as error:   # 설명용 보조 정보 — 실패해도 수집 결과 보고는 계속한다
-        print(f'  ⚠ 큐 상태 조회 실패(건너뜀): {type(error).__name__}: {error}')
+        print(f'  ⚠ 큐 상태 조회 실패(건너뜀): {describe_error(error)}')
         return []
     return [{'queue': worker, 'key': key, 'store': store, 'status': status, 'queued_at': queued_at}
             for worker, key, store, status, queued_at in rows]
@@ -210,19 +242,21 @@ def collect(date):
     os.makedirs(REPORTS, exist_ok=True)
     report = {'date': date, 'pairs': []}
     for main_key, test_key in pairs:
-        truth = load_records(os.path.join(MAIN_BASE, '_runs', main_key))
-        paddle = load_records(os.path.join(TEST_BASE, '_runs', test_key))
+        truth = load_engine_records(main_key)
+        paddle = load_engine_records(test_key)
+        if not truth or not paddle:
+            continue
         engines = {r.get('ocr_engine', 'claude') for r in paddle.values()}
         if 'paddle' not in engines:
             print(f'- {test_key}: 테스트 결과가 PaddleOCR 이 아니다(엔진 전환 전 Claude 실행) — 건너뜀')
             continue
-        raw = load_raw(os.path.join(TEST_BASE, '_runs', test_key))
+        raw = load_raw(test_key)
         save_dataset(date, main_key, test_key, truth, paddle, raw)
         rows, split_diff = compare_sets(truth, paddle)
         stats = summarize(rows, split_diff)
         print(format_summary(main_key, stats))
         if not raw['read']:
-            print('  ⚠ 원시 OCR 없음(_paddle_raw) — 이 날짜는 reparse 재채점에서 빠진다')
+            print(f'  ⚠ 원시 OCR 없음({RAW_TABLE} 에 {test_key} 없음) — 이 날짜는 reparse 재채점에서 빠진다')
         report['pairs'].append({'main': main_key, 'test': test_key, 'stats': stats,
                                 'split_diff': split_diff, 'mismatches': mismatch_examples(rows)})
     if not report['pairs']:
