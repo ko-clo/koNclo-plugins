@@ -50,4 +50,4 @@ description: Use when 자동판정 테스트서버(PaddleOCR) 결과를 메인�
 ## 경계
 - 메인서버(`autojudge.service`)·운영 폴더(`/home/konclo/autojudge`)는 읽기만 한다.
 - 검증·비교 스크립트를 receipt-autojudge 저장소에 커밋하지 않는다(2026-09-28 사용자 지시).
-- 원시 OCR 은 테스트 실행의 `vision/_paddle_raw/` 에 남는다(엔진 PR 이후 실행분부터).
+- 판독 입력은 DB `auto_judge.ocr_batches`(키 = `_runs` 폴더명), 원시 OCR 은 `auto_judge.ocr_raw_batches`(테스트 워커만 저장)다.
