@@ -11,7 +11,7 @@ description: Use when 자동판정 테스트서버(PaddleOCR) 결과를 메인�
 
 ## 전제
 - **서버 게이트**: `/server on [분]` 이 서버·NAS·플러그인 원격 가드를 함께 연다. 닫혀 있으면 안내하고 멈춘다.
-- **실행은 사용자가 한다**: 메인서버·테스트서버 잡 실행·재실행은 사용자가 ERP 에서 한다. 큐 JSON 을 되돌리지 않는다.
+- **실행은 사용자가 한다**: 메인서버·테스트서버 잡 실행·재실행은 사용자가 ERP 에서 한다. 실행 큐(auto_judge.queue_jobs)는 읽기만 한다.
 - **작업 폴더**: koclo-vm `~/paddle_dev/ocr_learn/` (저장소 밖). 큐·게시·DB 에 쓰지 않는다.
 - **도구**: 이 폴더의 `ocr_learn.py` — 저장소(receipt-autojudge)에 넣지 않는다.
 
