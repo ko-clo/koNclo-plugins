@@ -20,7 +20,6 @@ import sys
 
 MAIN_BASE = os.environ.get('OCR_LEARN_MAIN', '/home/konclo/autojudge')
 TEST_BASE = os.environ.get('OCR_LEARN_TEST', '/home/konclo/autojudge-test')
-QUEUE_ROOT = '/mnt/nas-auto-judge/data'
 WORK = os.path.expanduser(os.environ.get('OCR_LEARN_WORK', '~/paddle_dev/ocr_learn'))
 DATASET = os.path.join(WORK, 'dataset')
 REPORTS = os.path.join(WORK, 'reports')
@@ -162,19 +161,27 @@ def run_keys(base, prefix, d8):
 
 
 def queue_jobs(date):
-    """그날 잡의 큐 상태 — 결과가 없을 때 왜 없는지 설명하는 재료."""
-    jobs = []
-    for queue_dir in ('queue_kocloVM', 'queue_kocloVM_test', 'queue'):
-        for path in glob.glob(os.path.join(QUEUE_ROOT, queue_dir, '*.json')):
-            try:
-                with open(path, encoding='utf-8') as fh:
-                    job = json.load(fh)
-            except (OSError, ValueError):
-                continue
-            if job.get('date') == date and job.get('type') != 'refresh_index':
-                jobs.append({'queue': queue_dir, 'key': job.get('key'), 'store': job.get('store'),
-                             'status': job.get('status'), 'queued_at': job.get('queued_at')})
-    return jobs
+    """그날 판정 잡의 큐 상태(auto_judge.queue_jobs) — 결과가 없을 때 왜 없는지 설명하는 재료. DB 를 못 읽으면 빈 목록."""
+    sys.path.insert(0, MAIN_BASE)   # 메인 워커의 DB 설정(auto_judge_env · $MAIN_BASE/_db.env)을 그대로 쓴다
+    try:
+        import auto_judge_env
+        import psycopg2
+
+        connection = psycopg2.connect(**auto_judge_env.pg_kwargs())
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("""SELECT target_worker, job_key, store, status,
+                                         to_char(queued_at AT TIME ZONE 'Asia/Seoul', 'YYYY-MM-DD HH24:MI:SS')
+                                    FROM auto_judge.queue_jobs
+                                   WHERE work_date = %s AND job_type = 'judge' ORDER BY queued_at""", (date,))
+                rows = cursor.fetchall()
+        finally:
+            connection.close()
+    except Exception as error:   # 설명용 보조 정보 — 실패해도 수집 결과 보고는 계속한다
+        print(f'  ⚠ 큐 상태 조회 실패(건너뜀): {type(error).__name__}: {error}')
+        return []
+    return [{'queue': worker, 'key': key, 'store': store, 'status': status, 'queued_at': queued_at}
+            for worker, key, store, status, queued_at in rows]
 
 
 def explain_missing(date, main_keys, test_keys):
